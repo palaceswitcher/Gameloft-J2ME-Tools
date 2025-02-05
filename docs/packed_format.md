@@ -36,7 +36,7 @@ This is the most commonly used format. It stores both the sizes and offsets for 
 ### Hybrid Format Header
 
 `int8 File Count`: Amount of packed files.  
-`int32[File Count][2] File Metadata`: File size and offset pairs for each file. File offsets are relative to the start of the payload.
+`int32[File Count][2] File Metadata`: File offset and size pairs in that order for each file. File offsets are relative to the start of the payload.
 
 ## Text Pack Format
 
