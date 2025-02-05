@@ -4,8 +4,7 @@ A GUI tool and scripts for modifying Gameloft's J2ME game assets.
 ## Building
 
 ### Dependencies
-- SDL2
-- SDL_image
+- SDL3
 - CMake
 
 ```
