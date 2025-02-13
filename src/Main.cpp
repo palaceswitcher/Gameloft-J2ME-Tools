@@ -2,7 +2,7 @@
 #include "imgui_impl_sdl3.h"
 #include "imgui_impl_sdlrenderer3.h"
 #include "FileDialog.hpp"
-#include "FileMenu.hpp"
+#include "UI.hpp"
 #include "PackedFile.hpp"
 #include <iostream>
 #include <memory>
@@ -97,34 +97,7 @@ int main(int, char**)
 		ImGui_ImplSDL3_NewFrame();
 		ImGui::NewFrame();
 
-		// Main app window
-		ImGuiWindowFlags flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_MenuBar;
-		ImGuiViewport* viewport = ImGui::GetMainViewport();
-		ImGui::SetNextWindowPos(viewport->WorkPos, ImGuiCond_Always);
-		ImGui::SetNextWindowSize(viewport->WorkSize, ImGuiCond_Always);
-		{
-			static float f = 0.0f;
-			static int counter = 0;
-
-			ImGui::Begin("Main Window", nullptr, flags);
-
-			// Menu bar
-			if (ImGui::BeginMenuBar()) {
-				if (ImGui::BeginMenu("File")) {
-					if (ImGui::MenuItem("Open")) {
-						SDL_ShowOpenFileDialog(fileOpenCallback, &openedFiles, window, NULL, 0, NULL, true);
-					}
-					ImGui::EndMenu();
-				}
-				ImGui::EndMenuBar();
-			}
-
-			// File List
-			ImGui::Text("Files");
-			renderPackFileList(window, openedFiles);
-
-			ImGui::End();
-		}
+		UI::render(window, openedFiles); //Render UI
 
 		// Rendering
 		ImGui::Render();

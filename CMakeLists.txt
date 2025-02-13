@@ -8,7 +8,6 @@ option(NATIVE_OPTIMIZE "Optimize for native CPU" OFF)
 set(CMAKE_CXX_STANDARD 14)
 
 # Build settings
-#set(CMAKE_CXX_FLAGS "-DNFD_PORTAL=ON") #Use XDG portal for file picker
 if(BUILD_DEBUG)
     set(CMAKE_BUILD_TYPE Debug)
     set(CMAKE_DEBUG_POSTFIX d)
@@ -47,15 +46,15 @@ add_library(ImGui
 )
 
 # Include source directories and add executable
-include_directories(src/Core)
-include_directories(src/UI)
 include_directories(include)
 include_directories(include/imgui)
 include_directories(include/imgui/misc/cpp)
 include_directories(include/imgui/backends)
+
+include_directories(src/Core)
+include_directories(src/UI)
 add_subdirectory(src/Core)
 add_subdirectory(src/UI)
-
 add_executable (GameloftJ2METool src/Main.cpp)
 
 if(WIN32)

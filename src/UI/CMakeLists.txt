@@ -1,5 +1,6 @@
 add_library (UI
-	FileMenu.cpp
+	UI.cpp
+	FileView.cpp
 	FileDialog.cpp)
 
 target_link_libraries(UI PRIVATE Core)

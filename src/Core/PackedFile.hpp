@@ -5,13 +5,13 @@
 #define PACKEDFILE_HPP_
 
 enum FileFormat {
-	FORMAT_FILE_GENERIC, //Default/unknown file
-	FORMAT_FILE_GFX,
-	FORMAT_FILE_TXT_PK,
-	FORMAT_PK_OFFS,
-	FORMAT_PK_OFFS_ALT,
-	FORMAT_PK_SIZE,
-	FORMAT_PK_HYBRID
+	FORMAT_FILE_GENERIC = 0, //Default or unknown file
+	FORMAT_FILE_GFX, //Graphical data file
+	FORMAT_FILE_TXT_PK, //String data file
+	FORMAT_PK_OFFS, //Pack file (offset-only header)
+	FORMAT_PK_OFFS_ALT, //Pack file (alternate offset-only header)
+	FORMAT_PK_SIZE, //Pack file (size-only header)
+	FORMAT_PK_HYBRID //Pack file (offset and size header)
 };
 
 // Generic file
@@ -20,6 +20,7 @@ class File {
 public:
 	std::string name; //Name of the file
 	int format = FORMAT_FILE_GENERIC;
+	bool modified = false; //If file was modified since last save
 	std::vector<char> data;
 	File(); //Default constructor
 	File(std::vector<char> data, std::string name);
@@ -30,8 +31,6 @@ public:
 class PackFile : public File {
 public:
 	std::vector<std::unique_ptr<File>> subFiles;
-	bool collapsed = false;
-	bool modified = false;
 	int fileCount;
 	PackFile(std::string path); //Load packed file from path
 };

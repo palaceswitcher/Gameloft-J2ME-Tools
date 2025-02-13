@@ -101,7 +101,7 @@ File::File(std::string path) {
  * @param path File path
  */
 PackFile::PackFile(std::string path) : File::File(path) {
-	std::cout << "packed file constructor start (format: " << FORMAT_PK_HYBRID << ") (" << path << ")\n";
+	std::cout << "packed file constructor start (format: " << FORMAT_PK_HYBRID << ") (" << path << ")" << std::endl;
 	int index = 0;
 	if (format == FORMAT_PK_HYBRID) {
 		int fileCount = data[index++];
