@@ -1,6 +1,7 @@
 #include "FileDialog.hpp"
-#include "PackedFile.hpp"
+#include "PackFile.hpp"
 #include <vector>
+#include <memory>
 #include <string>
 #include <fstream>
 #include <SDL3/SDL.h>

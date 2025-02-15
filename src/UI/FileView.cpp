@@ -2,7 +2,8 @@
 #include <SDL3/SDL.h>
 #include "imgui.h"
 #include "FileDialog.hpp"
-#include "PackedFile.hpp"
+#include "File.hpp"
+#include "PackFile.hpp"
 #include <vector>
 #include <string>
 #include <algorithm>
@@ -173,7 +174,7 @@ void renderFileView(SDL_Window* window, std::vector<std::unique_ptr<File>>& file
 	}
 	for (int i = 0; i < files.size(); i++) {
 		renderFile({&files, files.begin()+i}, window, indentWidth);
-		enableFileContextPopup(window); //Show generic file popup when right clicked
 	}
+	enableFileContextPopup(window); //Show generic file popup when right clicked
 	ImGui::EndChild();
 }

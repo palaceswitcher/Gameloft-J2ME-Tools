@@ -1,7 +1,9 @@
 add_library (Core
-	PackedFile.cpp)
+	File.cpp
+	PackFile.cpp)
 
 #target_link_libraries(UI PRIVATE Misc)
 
 install(TARGETS Core DESTINATION bin)
-install(FILES FileHandler.hpp DESTINATION include)
+install(FILES File.hpp DESTINATION include)
+install(FILES PackFile.hpp DESTINATION include)

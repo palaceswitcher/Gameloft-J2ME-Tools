@@ -1,5 +1,5 @@
 #include <SDL3/SDL.h>
-#include "PackedFile.hpp"
+#include "PackFile.hpp"
 #include <vector>
 #include <memory>
 #ifndef FILEVIEW_HPP_ //Include guard
