@@ -2,9 +2,9 @@
 
 by PalaceSwitcher
 
-2025-1-22
+2025-2-15
 
-This has only been tested with Diamond Rush and Rayman Kart. These are likely applicable to other games but this has not been verified.
+This has only been tested with Diamond Rush and Rayman Kart. These are likely applicable to other games but this has not been verified. All numbers specified are little-endian, if applicable.
 
 ## Offset Format
 
@@ -13,27 +13,21 @@ This format contains packed files within a packed file and doesn't keep track of
 ### Offset Format Header
 
 `int16 File Count`: Amount of packed files. The actual amount of files is often one less than this as the last offset is at the end of the file and does not represent an actual file.  
-`int32[File Count] Offsets`: Offset of each file relative to the start of the payload.
+`int32[File Count] Offsets`: Start offsets of each file relative to the start of the payload.
 
-### Offset Alt Format
+## Alternate Offset Format
 
-This format has only been found for the pack data for the "More Games" section of Diamond Rush, and may not be very common. This is the same as the normal offset format, except each packed file has a short before it that represents its size in bytes.
+A less common variant of this format store the file count as a 32-bit integer and has a single terminator byte (usually `00`) after the header. File offsets also represent the end offset of each file rather than the start offset, so the number of files is the same as the number of offsets.
 
-## Size Format
+## Minimal Size Format
 
-Rather than representing the location of files by their offset, this format represents them by their size, with the index of a file being inferred based on the sizes of previous files. The first file is always assumed to be at the start of the payload.
+This is the most barebones format, featuring no header and instead having each file stored sequentially preceeded by a 16-bit integer representing their size. So far, this format has only been found nested within the normal offset in specific versions of Diamond Rush for the "More Games" section's data.
 
-## Size Format Header
-
-`int32 File Count`: Amount of packed files.  
-`int32[File Count] Sizes`: Sizes of each file.  
-`int8 Terminator`: Terminator byte, always 00.
-
-## Hybrid Format
+## Offset and Size Format
 
 This is the most commonly used format. It stores both the sizes and offsets for each file and uses one byte to represent the header.
 
-### Hybrid Format Header
+### Offset and Size Format Header
 
 `int8 File Count`: Amount of packed files.  
 `int32[File Count][2] File Metadata`: File offset and size pairs in that order for each file. File offsets are relative to the start of the payload.

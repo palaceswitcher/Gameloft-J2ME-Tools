@@ -6,7 +6,7 @@ import io
 from pathlib import Path
 import typing
 
-VERSION="v1.1 (2025-1-22)"
+VERSION="v1.1.1 (2025-2-15)"
 
 # Handle command line arguments
 parser = argparse.ArgumentParser()
@@ -14,8 +14,8 @@ parser.add_argument("-d", "--newdir",
 					help="Put unpacked files in separate directory",
                     action="store_true")
 parser.add_argument("-f", "--format", metavar="FORMAT",
-					help="Pack format (standard by default). Formats: s (Standard), alt (Demo), ad (More Games), txt (Text Pack)",
-                    action="store", default="s", choices=["s","alt","ad","txt"])
+					help="Pack format (offs_size by default). Formats: offs_size (Offset+Hybrid Format), offs (Offset), offs_alt (Offset Alternate), txt (Text Pack)",
+                    action="store", default="offs_size", choices=["offs_size","offs","offs_alt","txt"])
 parser.add_argument("-n", "--filenum", metavar="NUMBER",
 					help="Which file or block from the pack to get. -1 retrieves all files/blocks.",
                     action="store", default=0)
@@ -66,11 +66,11 @@ file_size = len(data)
 file_stream = io.BytesIO(data)
 
 # Get correct offset for mode and get file count
-if format == "s":
+if format == "offs_size":
 	file_count = int.from_bytes(file_stream.read(1))
-elif format == "alt":
+elif format == "offs_alt":
 	file_count = get_int_from_bytes(file_stream.read(4))
-elif format == "ad":
+elif format == "offs":
 	file_count = get_short_from_bytes(file_stream.read(2))
 header = bytearray() #Create header
 file_offsets: list[int] = [] #File offsets
@@ -79,14 +79,17 @@ file_sizes: list[int] = [] #File sizes
 files_data: list[bytearray] = [] #Byte arrays for each file
 
 # Get file offsets and sizes
-if format == "s":
+if format == "offs_size":
 	for i in range(file_count):
 		file_offsets.append(get_int_from_bytes(file_stream.read(4)))
 		file_sizes.append(get_int_from_bytes(file_stream.read(4)))
-elif format == "ad":
+elif format == "offs":
 	for i in range(file_count):
-		file_offsets.append(get_int_from_bytes(file_stream.read(4)))
-elif format == "alt":
+		file_offsets.append(get_int_from_bytes(file_stream.read(4))) 
+	file_count -= 1 #Last offset does not represent an actual file
+	for i in range(file_count):
+		file_sizes.append(file_offsets[i+1] - file_offsets[i])
+elif format == "offs_alt":
 	file_offsets.append(0) #The first offset is assumed to be zero
 	for i in range(file_count):
 		file_offsets.append(get_int_from_bytes(file_stream.read(4)))
@@ -94,14 +97,14 @@ elif format == "alt":
 		file_sizes.append(file_offsets[i+1] - file_offsets[i])
 
 # Load and separate files in payload
-if format == "s":
+if format == "offs_size":
 	for i in range(file_count):
 		files_data.append(file_stream.read(file_sizes[i]))
-elif format == "ad":
+elif format == "offs" or format == "offs_alt":
 	for i in range(file_count):
-		file_size = get_short_from_bytes(file_stream.read(2))
-		files_data.append(file_stream.read(file_size))
-if format == "alt":
+		#file_size = get_short_from_bytes(file_stream.read(2))
+		files_data.append(file_stream.read(file_sizes[i]))
+if format == "offs_alt":
 	file_stream.read(1) #Skip initial byte
 	for i in range(file_count):
 		files_data.append(file_stream.read(file_sizes[i]))
