@@ -8,7 +8,7 @@
 #include <string>
 
 bool drawGfxViewWindow = false; //TODO IMPLEMENT THIS
-bool UI::render(SDL_Window* window, std::vector<std::unique_ptr<File>> &files) {
+bool UI::render(SDL_Window* window, std::vector<std::unique_ptr<GenericAssetFile>> &files) {
 	// Main app window
 	ImGuiWindowFlags flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoBringToFrontOnFocus;
 	ImGuiViewport* viewport = ImGui::GetMainViewport();

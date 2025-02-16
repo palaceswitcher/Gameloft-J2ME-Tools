@@ -1,4 +1,4 @@
-#include "File.hpp"
+#include "AssetFile.hpp"
 #include <vector>
 #include <string>
 #include <memory>
@@ -6,9 +6,9 @@
 #define GFXFILE_HPP_
 
 // Packed file containing other files
-class GfxFile : public File {
+class GfxFile : public GenericAssetFile {
 public:
-	std::vector<std::unique_ptr<File>> subFiles;
+	std::vector<std::unique_ptr<GenericAssetFile>> subFiles;
 	int fileCount;
 	GfxFile(std::string path); //Load packed file from path
 };

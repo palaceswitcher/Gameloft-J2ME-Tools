@@ -1,43 +1,47 @@
-#include "File.hpp"
+#include "AssetFile.hpp"
 #include <fstream>
 #include <iterator>
 #include <memory>
 #include <vector>
 #include <string>
 #include <iostream>
+#include <cstdint>
 
 /**
- * Loads a 32-bit little-endian integer from a vector of chars and moves the index forward.
+ * Loads a 16-bit little-endian integer from a vector of chars in little-endian format and moves the index forward.
+ * @param bytes Byte data as a vector of chars
+ * @param index The index of the variable, passed by reference
+ * @returns The 16-bit little-endian integer at the specified index
+ */
+std::int16_t getShortFromBytes(std::vector<unsigned char>& bytes, int& index) {
+	return (bytes[index++]&0xFF) + ((bytes[index++]&0xFF) << 8);
+}
+
+/**
+ * Loads a 32-bit integer from a vector of chars in little-endian format and moves the index forward.
  * @param bytes Byte data as a vector of chars
  * @param index The index of the variable, passed by reference
  * @returns The 32-bit little-endian integer at the specified index
  */
-int getIntFromBytes(std::vector<unsigned char>& bytes, int& index) {
-	return (bytes[index++]&0xFF) | ((bytes[index++]&0xFF) << 8) | ((bytes[index++]&0xFF) << 16) | ((bytes[index++]&0xFF) << 24);
+std::int32_t getIntFromBytes(std::vector<unsigned char>& bytes, int& index) {
+	return (bytes[index++]&0xFF) + ((bytes[index++]&0xFF) << 8) + ((bytes[index++]&0xFF) << 16) + ((bytes[index++]&0xFF) << 24);
 }
 
-File::File() {
+GenericAssetFile::GenericAssetFile() {
 	this->name = "subfile";
 	this->format = FORMAT_FILE_GENERIC;
 }
 
-File::File(std::vector<unsigned char> data, std::string name) {
-	this->name = name;
-	this->data = data;
-}
-
 /**
- * Load file data from path and identifies its format.
- * @param path File path
+ * Creates a file from data and attempts to identify its file format.
+ * @param fData File data
+ * @param fName File name
+ * @param fPath File path
  */
-File::File(std::string path) {
-	std::ifstream inFile(path, std::ifstream::binary|std::ifstream::ate);
-	inFile >> std::noskipws;
-	data.reserve(inFile.tellg());
-	inFile.seekg(0, std::ios::beg);
-	std::copy(std::istream_iterator<unsigned char>(inFile), std::istream_iterator<unsigned char>(), std::back_inserter(data)); //Load file data into vector
-	this->path = path;
-	name = path.substr(path.find_last_of("/\\") + 1);
+GenericAssetFile::GenericAssetFile(std::vector<unsigned char> fData, std::string fName, std::string fPath) {
+	data = fData;
+	name = fName;
+	path = fPath;
 	int packFileSize = data.size(); //Get size of file
 	format = FORMAT_FILE_GENERIC; //Assume file is generic in case the below checks fail
 

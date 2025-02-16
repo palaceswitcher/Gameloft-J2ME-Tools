@@ -2,16 +2,16 @@
 #include <SDL3/SDL.h>
 #include "imgui.h"
 #include "FileDialog.hpp"
-#include "File.hpp"
+#include "AssetFile.hpp"
 #include "PackFile.hpp"
 #include <vector>
 #include <string>
 #include <algorithm>
 
-File* selectedFile = nullptr;
-File* rightClickedFile = nullptr; //File with an opened context menu
+GenericAssetFile* selectedFile = nullptr;
+GenericAssetFile* rightClickedFile = nullptr; //File with an opened context menu
 
-File* UI::getSelectedFile() {
+GenericAssetFile* UI::getSelectedFile() {
 	return selectedFile;
 }
 
@@ -29,7 +29,7 @@ void enableFileContextPopup(SDL_Window* window) {
 }
 
 // Return true if the objects are the same
-bool isDescendant(const File* file, const File* srcFile) {
+bool isDescendant(const GenericAssetFile* file, const GenericAssetFile* srcFile) {
 	if (file == srcFile) { return true; } //Failsafe if they are somehow the same object
 	if (file->format >= FORMAT_PK_OFFS) {
 		const PackFile* packFile = static_cast<const PackFile*>(file);
@@ -50,7 +50,7 @@ bool isDescendant(const File* file, const File* srcFile) {
 void renderFile(FileSource fileSrc, SDL_Window* window, float indentWidth) {
 	// Pack file specific variables (if applicable)
 	PackFile* packFile; //Pack file being rendered
-	File* file = (*fileSrc.fileIter).get(); //The file being rendered
+	GenericAssetFile* file = (*fileSrc.fileIter).get(); //The file being rendered
 	bool treeNodeOpen = false;
 	std::string name = file->name;
 	if (file->format < FORMAT_PK_OFFS) {
@@ -112,7 +112,7 @@ void renderFile(FileSource fileSrc, SDL_Window* window, float indentWidth) {
 	if (ImGui::BeginDragDropTarget()) {
 		if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("FILE_ITEM")) {
 			FileSource* droppedFileSrc = (FileSource*)payload->Data; //Get dropped first so we can determine if it can be dropped
-			File* droppedFile = (*droppedFileSrc->fileIter).get();
+			GenericAssetFile* droppedFile = (*droppedFileSrc->fileIter).get();
 
 			bool canBeDropped = true; //Used to determine if the file can be dropped
 			if (droppedFile->format >= FORMAT_PK_OFFS) {
@@ -143,7 +143,7 @@ void renderFile(FileSource fileSrc, SDL_Window* window, float indentWidth) {
 	}
 }
 
-void renderFileView(SDL_Window* window, std::vector<std::unique_ptr<File>>& files) {
+void renderFileView(SDL_Window* window, std::vector<std::unique_ptr<GenericAssetFile>>& files) {
 	ImGui::Text("Files"); //Child title
 	ImGui::BeginChild("FileViewPanel", ImVec2(250, 0), ImGuiChildFlags_Borders|ImGuiChildFlags_ResizeX, ImGuiWindowFlags_NoMove);
 	float indentWidth = 0;

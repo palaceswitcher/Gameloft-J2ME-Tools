@@ -20,7 +20,7 @@ int getIntFromBytes(std::vector<char>& bytes, int& index) {
  * Loads a packed file at a specific path
  * @param path File path
  */
-GfxFile::GfxFile(std::string path) : File::File(path) {
+GfxFile::GfxFile(std::string path) : GenericAssetFile::GenericAssetFile(path) {
 	std::cout << "packed file constructor start (format: " << FORMAT_PK_OFFS_SIZE << ") (" << path << ")" << std::endl;
 	int index = 0;
 	if (format == FORMAT_FILE_GFX) {

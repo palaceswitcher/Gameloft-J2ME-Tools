@@ -1,4 +1,4 @@
-#include "File.hpp"
+#include "AssetFile.hpp"
 #include <vector>
 #include <string>
 #include <memory>
@@ -6,11 +6,11 @@
 #define PACKFILE_HPP_
 
 // Packed file containing other files
-class PackFile : public File {
+class PackFile : public GenericAssetFile {
 public:
-	std::vector<std::unique_ptr<File>> subFiles;
+	std::vector<std::unique_ptr<GenericAssetFile>> subFiles;
 	int fileCount;
-	PackFile(std::string path); //Load packed file from path
+	PackFile(std::vector<unsigned char> data, std::string name, std::string path = ""); //Load packed file from path
 };
 
 #endif

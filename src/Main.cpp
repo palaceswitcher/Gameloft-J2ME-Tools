@@ -3,7 +3,7 @@
 #include "imgui_impl_sdlrenderer3.h"
 #include "FileDialog.hpp"
 #include "UI.hpp"
-#include "File.hpp"
+#include "AssetFile.hpp"
 #include <iostream>
 #include <memory>
 #include <stdio.h>
@@ -57,7 +57,7 @@ int main(int, char**)
 	ImGui_ImplSDLRenderer3_Init(renderer);
 
 	// Variables
-	std::vector<std::unique_ptr<File>> openedFiles; //Every opened file
+	std::vector<std::unique_ptr<GenericAssetFile>> openedFiles; //Every opened file
 	ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
 	// Main loop

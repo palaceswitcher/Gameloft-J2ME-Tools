@@ -6,7 +6,7 @@
 #define UI_HPP_
 
 namespace UI {
-bool render(SDL_Window* window, std::vector<std::unique_ptr<File>> &files);
+bool render(SDL_Window* window, std::vector<std::unique_ptr<GenericAssetFile>> &files);
 }
 
 #endif

@@ -1,17 +1,33 @@
 #include "FileDialog.hpp"
 #include "PackFile.hpp"
+#include <fstream>
+#include <iterator>
 #include <vector>
 #include <memory>
 #include <string>
-#include <fstream>
+#include <iostream>
 #include <SDL3/SDL.h>
+
+void insertFile(std::vector<std::unique_ptr<GenericAssetFile>>* fileVec, std::vector<unsigned char> fData, std::string fName, std::string fPath = "") {
+	GenericAssetFile file = GenericAssetFile(fData, fName, fPath);
+	switch (file.format) {
+	case FORMAT_FILE_GENERIC:
+		fileVec->push_back(std::make_unique<GenericAssetFile>(file));
+		break;
+	case FORMAT_PK_OFFS:
+	case FORMAT_PK_OFFS_ALT:
+	case FORMAT_PK_OFFS_SIZE:
+		fileVec->push_back(std::make_unique<PackFile>(fData, fName, fPath));
+		break;
+	}
+}
 
 static const SDL_DialogFileFilter filters[] = {
 	{"All files", "*"}
 };
 
 void SDLCALL fileOpenCallback(void* pFilesOpened, const char* const* fileList, int filter) {
-	std::vector<std::unique_ptr<File>>* filesOpened = reinterpret_cast<std::vector<std::unique_ptr<File>>*>(pFilesOpened); //Get vector pointer back
+	std::vector<std::unique_ptr<GenericAssetFile>>* filesOpened = reinterpret_cast<std::vector<std::unique_ptr<GenericAssetFile>>*>(pFilesOpened); //Get vector pointer back
 	std::vector<std::string> files;
 	if (!fileList) {
 		SDL_Log("An error occured: %s", SDL_GetError());
@@ -21,8 +37,22 @@ void SDLCALL fileOpenCallback(void* pFilesOpened, const char* const* fileList, i
 	}
 
 	while (*fileList) {
-		files.push_back(*fileList);
-		filesOpened->push_back(std::make_unique<PackFile>(PackFile(*fileList)));
+		std::string path = *fileList;
+		files.push_back(path);
+		// Load file from path
+		std::vector<unsigned char> data;
+		std::ifstream inFile(path, std::ifstream::binary|std::ifstream::ate);
+		if (!inFile.fail()) {
+			inFile >> std::noskipws; //This is a binary file
+			data.reserve(inFile.tellg());
+			inFile.seekg(0, std::ios::beg);
+			std::copy(std::istream_iterator<unsigned char>(inFile), std::istream_iterator<unsigned char>(), std::back_inserter(data)); //Load file data into vector
+			std::string name = path.substr(path.find_last_of("/\\") + 1); //Set path and name
+			//filesOpened->push_back(std::make_unique<PackFile>(PackFile(*fileList)));
+			insertFile(filesOpened, data, name, path);
+		} else {
+			std::cerr << "Error loading file: " << path << '\n';
+		}
 		fileList++;
 	}
 }

@@ -1,5 +1,5 @@
 add_library (Core
-	File.cpp
+	AssetFile.cpp
 	PackFile.cpp)
 
 #target_link_libraries(UI PRIVATE Misc)
