@@ -2,7 +2,7 @@
 
 by PalaceSwitcher
 
-2025-2-15
+2025-2-17
 
 This has only been tested with Diamond Rush and Rayman Kart. These are likely applicable to other games but this has not been verified. All numbers specified are little-endian, if applicable.
 
@@ -21,7 +21,7 @@ A less common variant of this format store the file count as a 32-bit integer an
 
 ## Minimal Size Format
 
-This is the most barebones format, featuring no header and instead having each file stored sequentially preceeded by a 16-bit integer representing their size. So far, this format has only been found nested within the normal offset in specific versions of Diamond Rush for the "More Games" section's data.
+This is the most barebones format, featuring no header and instead having each file stored sequentially preceeded by a 16-bit integer representing their size. So far, this format has only been found nested within normal offset packs in specific versions of Diamond Rush for the "More Games" section's data.
 
 ## Offset and Size Format
 
@@ -34,19 +34,17 @@ This is the most commonly used format. It stores both the sizes and offsets for 
 
 ## Text Pack Format
 
-Text packs start with a short representing the length of the text data itself, and the rest of the file is used to store the string index table. Strings are defined by the string index table, which has the offset and size of each string in the string table.
+Text packs are stored as two files packed in the [minimal pack format](#minimal-size-format), with the first file being the string table, which stores the raw string data, and the second file being the index table, which stores the indexes of each string in the table.
 
-### Text Pack Header
-
-`int16 String Table Size`: Size of the string table in bytes.  
-`char[String Table Size] String Table`: The table of null-terminated strings.  
-`int16 String Index Table Size`: Size of the string index table in bytes.  
-`int16[] String Index Table`: The indices for each string in the table.
-
-#### String Table
+### String Table
 
 The string table contains a header specifying how many bytes it takes up followed by an array of shorts representing the start index for each string. Strings are null-terminated and are encoded in ISO/IEC 8859-1, with the exception of the single quote being encoded by character 0x92. They seem to use some control characters
 
-#### String Index Table
+### String Index Table
 
-The first half of the table has the sizes of each string as a short, and the other half has the index of each string excluding the header.
+#### String Index Table Format
+
+`int16 String Count`: Amount of strings.  
+`int16[String Count] String Indices`:Indices of each string.
+
+The string table contains the number of strings in the string table followed by the starting index of every string. The first string is assumed to be at index 0, and the last index typically points to the end of the string table.
