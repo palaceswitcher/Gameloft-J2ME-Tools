@@ -27,10 +27,7 @@ std::int32_t getIntFromBytes(std::vector<unsigned char>& bytes, int& index) {
 	return (bytes[index++]&0xFF) + ((bytes[index++]&0xFF) << 8) + ((bytes[index++]&0xFF) << 16) + ((bytes[index++]&0xFF) << 24);
 }
 
-GenericAssetFile::GenericAssetFile() {
-	this->name = "subfile";
-	this->format = FORMAT_FILE_GENERIC;
-}
+GenericAssetFile::GenericAssetFile() { return; }
 
 /**
  * Creates a file from data and attempts to identify its file format.
@@ -42,11 +39,13 @@ GenericAssetFile::GenericAssetFile(std::vector<unsigned char> fData, std::string
 	data = fData;
 	name = fName;
 	path = fPath;
-	int packFileSize = data.size(); //Get size of file
+	int packFileSize = data.size(); //Size of file
 	format = FORMAT_FILE_GENERIC; //Assume file is generic in case the below checks fail
+	if (packFileSize < 3) {
+		return;
+	}
 
 	// Attempt to match for offset+size format
-	std::vector<int> fileOffsets;
 	bool matchFound = true; //This is true until proven otherwise
 	int index = 0;
 	int fileCount = data[index++];
@@ -67,11 +66,12 @@ GenericAssetFile::GenericAssetFile(std::vector<unsigned char> fData, std::string
 			return;
 		}
 	}
+
 	// Match for offset format
 	matchFound = true; //Assume true for the next check until proven otherwise
-	fileCount = (data[index++]&0xFF) | ((data[index++]&0xFF) << 8);
-	fileOffsets.reserve(fileCount);
+	fileCount = getShortFromBytes(data, index);
 	if (fileCount * 4 + 2 < packFileSize && fileCount > 0) {
+		std::vector<int> fileOffsets;
 		// Get offsets first so we can figure out sizes after
 		for (int i = 0; i < fileCount; i++) {
 			int subFileOffset = getIntFromBytes(data, index);
@@ -81,7 +81,7 @@ GenericAssetFile::GenericAssetFile(std::vector<unsigned char> fData, std::string
 				matchFound = false;
 				break;
 			} else {
-				fileOffsets[i] = subFileOffset;
+				fileOffsets.push_back(subFileOffset);
 			}
 		}
 		// Validate sizes
@@ -104,9 +104,14 @@ GenericAssetFile::GenericAssetFile(std::vector<unsigned char> fData, std::string
 	matchFound = true;
 	fileCount = getIntFromBytes(data, index);
 	if (fileCount * 4 + 5 < packFileSize && fileCount > 0) {
-		std::vector<int> fileOffsets(fileCount);
+		std::vector<int> fileOffsets;
 		// Get sizes first so we can figure out offsets after
 		for (int i = 0; i < fileCount; i++) {
+			if (index + 4 > packFileSize) {
+				index = 0;
+				matchFound = false;
+				break;
+			}
 			int subFileOffset = getIntFromBytes(data, index);
 
 			if (subFileOffset > packFileSize - (fileCount*4 + 4)) {
@@ -114,11 +119,11 @@ GenericAssetFile::GenericAssetFile(std::vector<unsigned char> fData, std::string
 				matchFound = false;
 				break;
 			} else {
-				fileOffsets[i] = subFileOffset;
+				fileOffsets.push_back(subFileOffset);
 			}
 		}
 		// Validate offsets
-		for (int i = 0; i < fileCount - 1; i++) {
+		for (int i = 0; matchFound && i < fileCount - 1; i++) {
 			int subFileSize = (fileOffsets[i+1] - fileOffsets[i]) + 1;
 
 			if (subFileSize > packFileSize - (fileCount*4 + 4) || subFileSize < 0) {
@@ -133,7 +138,38 @@ GenericAssetFile::GenericAssetFile(std::vector<unsigned char> fData, std::string
 		}
 	}
 
-	//Match for graphics format
+	// Match for minimal asset pack format
+	matchFound = true; //This is true until proven otherwise
+	index = 0;
+	fileCount = 0; //Amount of files isn't immediately known
+	std::vector<int> packFileSizes;
+	std::vector<int> packFileOffsets;
+	while (index >= 0 && index < packFileSize) {
+		int fileSize = getShortFromBytes(data, index);
+		if (fileSize < 0 || fileSize >= packFileSize || index + fileSize > packFileSize) {
+			index = 0;
+			matchFound = false;
+			break;
+		}
+		packFileOffsets.push_back(index);
+		packFileSizes.push_back(fileSize);
+		index += fileSize;
+		fileCount++;
+	}
+	if (matchFound && index > 0 && index == packFileSize) {
+		// Match for text pack (which is subtype of minimal pack)
+		if (fileCount == 2) {
+			int stringCountInd = packFileOffsets[1];
+			if ((getShortFromBytes(data, stringCountInd) * 2) == (packFileSizes[1] - 2)) {
+				format = FORMAT_FILE_TXT_PK;
+				return;
+			}
+		}
+		format = FORMAT_PK_MIN;
+		return;
+	}
+
+	// Match for graphics format
 	matchFound = true;
 	const unsigned char gfxFileSig[] = {0xDF, 0x03, 0x01, 0x01, 0x01, 0x01};
 	for (int i = 0; i < 6; i++) {

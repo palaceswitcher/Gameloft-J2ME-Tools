@@ -1,11 +1,12 @@
+#ifndef FILEVIEW_HPP_
+#define FILEVIEW_HPP_
 #include <SDL3/SDL.h>
-#include "PackFile.hpp"
+#include "AssetFile.hpp"
 #include <vector>
 #include <memory>
-#ifndef FILEVIEW_HPP_ //Include guard
-#define FILEVIEW_HPP_
 
 namespace UI {
+// Pop last selected file, can only be done once after a file is selected, otherwise it will return a nullptr.
 GenericAssetFile* getSelectedFile();
 }
 

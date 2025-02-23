@@ -3,16 +3,19 @@
 #include "imgui.h"
 #include "FileDialog.hpp"
 #include "AssetFile.hpp"
-#include "PackFile.hpp"
+#include "AssetPack.hpp"
 #include <vector>
 #include <string>
 #include <algorithm>
+#include <iostream>
 
 GenericAssetFile* selectedFile = nullptr;
 GenericAssetFile* rightClickedFile = nullptr; //File with an opened context menu
 
 GenericAssetFile* UI::getSelectedFile() {
-	return selectedFile;
+	GenericAssetFile* ret = selectedFile;
+	selectedFile = nullptr;
+	return ret;
 }
 
 // Renders the popup context menu for a generic file, only to be used in file menu.
@@ -32,7 +35,7 @@ void enableFileContextPopup(SDL_Window* window) {
 bool isDescendant(const GenericAssetFile* file, const GenericAssetFile* srcFile) {
 	if (file == srcFile) { return true; } //Failsafe if they are somehow the same object
 	if (file->format >= FORMAT_PK_OFFS) {
-		const PackFile* packFile = static_cast<const PackFile*>(file);
+		const AssetPack* packFile = static_cast<const AssetPack*>(file);
 		for (const auto& subFile : packFile->subFiles) {
 			if (isDescendant(subFile.get(), srcFile)) {
 				return true;
@@ -43,22 +46,23 @@ bool isDescendant(const GenericAssetFile* file, const GenericAssetFile* srcFile)
 }
 
 /**
- * @private Renders a file.
+ * Renders a file.
  * @param fileSrc Location of the file being rendered
  * @param indentWidth width of the file's indentation
  */
 void renderFile(FileSource fileSrc, SDL_Window* window, float indentWidth) {
 	// Pack file specific variables (if applicable)
-	PackFile* packFile; //Pack file being rendered
+	AssetPack* packFile; //Pack file being rendered
 	GenericAssetFile* file = (*fileSrc.fileIter).get(); //The file being rendered
 	bool treeNodeOpen = false;
+
 	std::string name = file->name;
-	if (file->format < FORMAT_PK_OFFS) {
+	if (file->format > FORMAT_FILE_GENERIC && file->format < FORMAT_PK_OFFS) {
 		if (ImGui::Selectable(name.c_str(), false, ImGuiSelectableFlags_None)) {
 			selectedFile = file; //Select the clicked file
 		}
 	} else {
-		packFile = static_cast<PackFile*>(file);
+		packFile = static_cast<AssetPack*>(file);
 		treeNodeOpen = ImGui::TreeNodeEx(packFile->name.c_str(), ImGuiTreeNodeFlags_OpenOnArrow); //Cache pack tree node open state
 	}
 	if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
@@ -73,7 +77,7 @@ void renderFile(FileSource fileSrc, SDL_Window* window, float indentWidth) {
 
 	// Rendering for pack files
 	if (treeNodeOpen) {
-		// Drop zone at top of tree
+		// Drop zone at top of tree files
 		float fileYPos = ImGui::GetCursorPosY();
 		ImGui::Dummy(ImVec2(ImGui::GetWindowSize().x-indentWidth-ImGui::GetTextLineHeightWithSpacing(), ImGui::GetFontSize()));
 		ImGui::SetCursorPosY(fileYPos); //Draw dummy drop zone between files
@@ -82,13 +86,15 @@ void renderFile(FileSource fileSrc, SDL_Window* window, float indentWidth) {
 				auto destIt = packFile->subFiles.begin(); //Insert point for this specific target
 				FileSource* fileSrc = (FileSource*)payload->Data;
 				if (*destIt != *fileSrc->fileIter) {
+					// Move to other vector
 					if (fileSrc->fileVector != &packFile->subFiles) {
 						packFile->subFiles.insert(destIt, std::move(*(fileSrc->fileIter)));
 						fileSrc->fileVector->erase(fileSrc->fileIter);
+					// Move within same vector
 					} else {
-						if (fileSrc->fileIter < destIt) {
-							std::rotate(fileSrc->fileIter, fileSrc->fileIter+1, destIt+1);
-						} else if (fileSrc->fileIter > destIt) {
+						if (fileSrc->fileIter < packFile->subFiles.begin()) {
+							std::rotate(fileSrc->fileIter, fileSrc->fileIter+1, packFile->subFiles.begin()+1);
+						} else if (fileSrc->fileIter > packFile->subFiles.begin()) {
 							std::rotate(destIt, fileSrc->fileIter, fileSrc->fileIter+1);
 						}
 					}
@@ -111,27 +117,29 @@ void renderFile(FileSource fileSrc, SDL_Window* window, float indentWidth) {
 	ImGui::SetCursorPosY(fileYPos); //Draw dummy drop zone between files
 	if (ImGui::BeginDragDropTarget()) {
 		if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("FILE_ITEM")) {
-			FileSource* droppedFileSrc = (FileSource*)payload->Data; //Get dropped first so we can determine if it can be dropped
+			FileSource* droppedFileSrc = (FileSource*)payload->Data; //File that was dropped in
 			GenericAssetFile* droppedFile = (*droppedFileSrc->fileIter).get();
 
-			bool canBeDropped = true; //Used to determine if the file can be dropped
+			bool canBeDropped = true; //Used to determine if the file can be dropped. Assumed to be true if the file is not an asset pack
 			if (droppedFile->format >= FORMAT_PK_OFFS) {
-				PackFile* droppedPackFile = static_cast<PackFile*>(droppedFile);
-				canBeDropped = (&(droppedPackFile->subFiles) != fileSrc.fileVector) && !isDescendant(droppedPackFile, file); //The pack file cannot be dropped into itself
+				AssetPack* droppedPackFile = static_cast<AssetPack*>(droppedFile);
+				canBeDropped = (&(droppedPackFile->subFiles) != fileSrc.fileVector) && !isDescendant(droppedPackFile, file); //The asset pack cannot be dropped into itself
 			}
 			if (canBeDropped) {
 				auto destIt = fileSrc.fileIter+1; //Insert after the element for this point
 				if (*(fileSrc.fileIter) != *droppedFileSrc->fileIter) {
+					// Insert outside of vector
 					if (droppedFileSrc->fileVector != fileSrc.fileVector) {
 						fileSrc.fileVector->insert(destIt, std::move(*(droppedFileSrc->fileIter)));
 						droppedFileSrc->fileVector->erase(droppedFileSrc->fileIter);
+					// Insert within vector
 					} else {
-						if (fileSrc.fileIter+1 >= fileSrc.fileVector->end()) {
+						if (destIt >= fileSrc.fileVector->end()) {
 							destIt = fileSrc.fileIter; //Don't insert out of bounds if the file is moved within the same vector
 						}
-						if (droppedFileSrc->fileIter < destIt) {
-							std::rotate(droppedFileSrc->fileIter, droppedFileSrc->fileIter+1, destIt+1);
-						} else if (droppedFileSrc->fileIter > destIt) {
+						if (droppedFileSrc->fileIter < fileSrc.fileIter+1) {
+							std::rotate(droppedFileSrc->fileIter, droppedFileSrc->fileIter+1, fileSrc.fileIter+1);
+						} else if (droppedFileSrc->fileIter > fileSrc.fileIter+1) {
 							std::rotate(destIt, droppedFileSrc->fileIter, droppedFileSrc->fileIter+1);
 						}
 					}
@@ -147,7 +155,7 @@ void renderFileView(SDL_Window* window, std::vector<std::unique_ptr<GenericAsset
 	ImGui::Text("Files"); //Child title
 	ImGui::BeginChild("FileViewPanel", ImVec2(250, 0), ImGuiChildFlags_Borders|ImGuiChildFlags_ResizeX, ImGuiWindowFlags_NoMove);
 	float indentWidth = 0;
-	// Drop zone for the top file
+	// Drop zone above the top file
 	float fileYPos = ImGui::GetCursorPosY();
 	ImGui::SetCursorPosY(fileYPos-6.0f);
 	ImGui::Dummy(ImVec2(ImGui::GetWindowSize().x-indentWidth-16.0f, 12.0f));

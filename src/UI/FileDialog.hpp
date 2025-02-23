@@ -1,6 +1,6 @@
-#include <SDL3/SDL.h>
 #ifndef FILEDIALOG_HPP_ //Include guard
 #define FILEDIALOG_HPP_
+#include <SDL3/SDL.h>
 
 // Called when a file is opened, queues each file to be opened.
 void SDLCALL fileOpenCallback(void* pFilesOpened, const char* const* fileList, int filter);

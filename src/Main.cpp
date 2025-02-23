@@ -97,7 +97,7 @@ int main(int, char**)
 		ImGui_ImplSDL3_NewFrame();
 		ImGui::NewFrame();
 
-		UI::render(window, openedFiles); //Render UI
+		UI::render(renderer, window, openedFiles); //Render UI
 
 		// Rendering
 		ImGui::Render();

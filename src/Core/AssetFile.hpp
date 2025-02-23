@@ -1,9 +1,9 @@
+#ifndef ASSETFILE_HPP_ //Include guard
+#define ASSETFILE_HPP_
 #include <vector>
 #include <string>
 #include <memory>
 #include <cstdint>
-#ifndef FILE_HPP_ //Include guard
-#define FILE_HPP_
 
 std::int16_t getShortFromBytes(std::vector<unsigned char>& bytes, int& index);
 std::int32_t getIntFromBytes(std::vector<unsigned char>& bytes, int& index);
@@ -12,9 +12,10 @@ enum FileFormat {
 	FORMAT_FILE_GENERIC = 0, //Default or unknown file
 	FORMAT_FILE_GFX, //Graphical data file
 	FORMAT_FILE_TXT_PK, //String data file
-	FORMAT_PK_OFFS, //Pack file (offset-only header)
-	FORMAT_PK_OFFS_ALT, //Pack file (alternate offset-only header)
-	FORMAT_PK_OFFS_SIZE //Pack file (offset and size header)
+	FORMAT_PK_OFFS, //Asset pack (offset-only header)
+	FORMAT_PK_OFFS_ALT, //Asset pack (alternate offset-only header)
+	FORMAT_PK_OFFS_SIZE, //Asset pack (offset and size header)
+	FORMAT_PK_MIN //Minimalistic asset pack
 };
 
 // Generic file
