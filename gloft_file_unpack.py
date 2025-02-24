@@ -130,7 +130,7 @@ for i in range(file_count):
 	file_ext = ""
 	if args.file_ext != "":
 		file_ext = "."+args.file_ext
-	o = open(f"{filename_path.with_suffix("")}_{str(i)}{file_ext}", "wb") #Create output filename
+	o = open(f"{filename_path.with_suffix('')}_{str(i)}{file_ext}", "wb") #Create output filename
 	o.write(files_data[i]) #Output file
 
 print("Success! "+str(file_count)+" file(s) unpacked.")
