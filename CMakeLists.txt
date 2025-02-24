@@ -24,14 +24,12 @@ if(SDL_VENDORED)
 else()
     # 1. Look for a SDL3 package, 2. look for the SDL3 component and 3. fail if none can be found
     find_package(SDL3 REQUIRED CONFIG REQUIRED COMPONENTS SDL3-shared)
-
-    # 1. Look for a SDL3 package, 2. Look for the SDL3maincomponent and 3. DO NOT fail when SDL3main is not available
-    #find_package(SDL3 REQUIRED CONFIG COMPONENTS SDL3main)
 endif()
 
 # Find dependencies
-find_package(SDL3_image REQUIRED)
-include_directories(${SDL3_INCLUDE_DIRS} ${SDL3_IMAGE_INCLUDE_DIRS})
+#find_package(SDL3_image REQUIRED)
+find_package(SDL3 REQUIRED)
+include_directories(${SDL3_INCLUDE_DIRS})
 
 add_library(ImGui
     include/imgui/imgui.cpp
@@ -44,6 +42,8 @@ add_library(ImGui
     include/imgui/backends/imgui_impl_sdlrenderer3.cpp
     include/imgui/backends/imgui_impl_opengl2.cpp
 )
+
+target_link_libraries(ImGui PRIVATE SDL3)
 
 # Include source directories and add executable
 include_directories(include)
@@ -61,14 +61,7 @@ add_executable (GameloftJ2METool src/Main.cpp)
 
 if(WIN32)
     target_link_options(GameloftJ2METool PRIVATE "-mwindows") #Disable console pop-up
-    target_link_options(GameloftJ2METool PRIVATE -static) #Statically link non-SDL libraries
 endif(WIN32)
-
-# SDL3::SDL3main may or may not be available. It is e.g. required by Windows GUI applications
-#if(TARGET SDL3::SDL3main)
-    # It has an implicit dependency on SDL3 functions, so it MUST be added before SDL3::SDL3 (or SDL3::SDL3-static)
-    #target_link_libraries(GameloftJ2METool SDL3::SDL3main)
-#endif()
 
 # Indicate which libraries to include during the link process.
 target_link_libraries(GameloftJ2METool SDL3::SDL3)

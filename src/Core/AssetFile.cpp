@@ -160,7 +160,7 @@ GenericAssetFile::GenericAssetFile(std::vector<unsigned char> fData, std::string
 	std::vector<int> packFileOffsets;
 	while (index >= 0 && index < packFileSize) {
 		int fileSize = getShortFromBytes(data, index);
-		if (fileSize <= 0 || fileSize >= packFileSize || index + fileSize > packFileSize) {
+		if (fileSize < 0 || fileSize >= packFileSize || index + fileSize > packFileSize) {
 			index = 0;
 			matchFound = false;
 			break;

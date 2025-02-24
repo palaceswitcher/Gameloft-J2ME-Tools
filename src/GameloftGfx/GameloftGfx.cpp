@@ -161,7 +161,7 @@ void GameloftGraphics::loadData(std::vector<unsigned char> data, int index) {
 			}
 
 			for (int i = 0; i < spriteDimCount; i++) {
-				int bitmapSize = bytesToShort(data, index);		
+				int bitmapSize = bytesToShort(data, index);
 				std::copy(data.begin()+index, data.begin()+index+bitmapSize, back_inserter(bitmapData));
 				index += bitmapSize;
 			}

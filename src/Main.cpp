@@ -8,6 +8,7 @@
 #include <memory>
 #include <stdio.h>
 #include <SDL3/SDL.h>
+#include <SDL3/SDL_main.h>
 #if defined(IMGUI_IMPL_OPENGL_ES2)
 #include <SDL3/SDL_opengles2.h>
 #else
@@ -15,7 +16,7 @@
 #endif
 
 // Main code
-int main(int, char**)
+int main(int argc, char* argv[])
 {
 	// Setup SDL
 	if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMEPAD))

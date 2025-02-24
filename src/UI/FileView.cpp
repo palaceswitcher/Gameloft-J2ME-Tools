@@ -57,7 +57,7 @@ void renderFile(FileSource fileSrc, SDL_Window* window, float indentWidth) {
 	bool treeNodeOpen = false;
 
 	std::string name = file->name;
-	if (file->format > FORMAT_FILE_GENERIC && file->format < FORMAT_PK_OFFS) {
+	if (file->format < FORMAT_PK_OFFS) {
 		if (ImGui::Selectable(name.c_str(), false, ImGuiSelectableFlags_None)) {
 			selectedFile = file; //Select the clicked file
 		}
