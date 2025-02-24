@@ -33,7 +33,7 @@ struct GameloftGraphics {
 	static std::vector<unsigned char> field_25;
 	static int field_27;// = -1;
 	static int field_28;// = -1;
-	std::vector<int> field_5 = std::vector<int>(4096);
+	std::vector<int> argbBitmapData = std::vector<int>(4096);
 	std::vector<unsigned char> spriteDims;
 	std::vector<unsigned char> field_7;
 	std::vector<std::int16_t> field_8;
@@ -45,12 +45,12 @@ struct GameloftGraphics {
 	std::vector<std::vector<int>> field_14;
 	std::vector<std::vector<int>> palettes;
 	int paletteCount;
-	int field_17;
+	int spritePalette;
 	bool isTransparent;
 	std::int16_t bitDepth;
 	std::vector<unsigned char> bitmapData;
 	std::vector<std::int16_t> bitmapInds;
-	std::vector<std::vector<J2MEImage>> field_22;
+	std::vector<std::vector<J2MEImage>> sprites;
 	int field_26 = 0;
 	void loadData(std::vector<unsigned char> data, int index = 0);
 	void method_1(int var1, int var2, int var3, int var4);

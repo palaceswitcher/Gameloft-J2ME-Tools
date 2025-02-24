@@ -45,7 +45,8 @@ bool UI::render(SDL_Renderer* ren, SDL_Window* window, std::vector<std::unique_p
 	GenericAssetFile* selectedFile = UI::getSelectedFile();
 	if (selectedFile != nullptr) {
 		if (selectedFile->format == FORMAT_FILE_GFX) {
-			addToGfxWindow(selectedFile);
+			GfxAsset* gfxFile = static_cast<GfxAsset*>(selectedFile);
+			UI::addToGfxWindow(gfxFile);
 		}
 	}
 	renderGfxWindow(window, gfxWindowOpen);

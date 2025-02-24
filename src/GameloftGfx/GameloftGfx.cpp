@@ -85,7 +85,7 @@ void GameloftGraphics::loadData(std::vector<unsigned char> data, int index) {
 		for (int i = 0; i < var55; i++) {
 			field_11.push_back(data[index++]);
 			index++;
-			field_12.push_back(data[index++]);
+			field_12.push_back(getShortFromBytes(data, index));
 		}
 	}
 
@@ -150,16 +150,18 @@ void GameloftGraphics::loadData(std::vector<unsigned char> data, int index) {
 		bitDepth = bytesToShort(data, index);
 		if (spriteDimCount > 0) {
 			bitmapInds.reserve(spriteDimCount);
-			int bitmapIndex = index;
+			int bitmapDataIndex = index;
+			int bitmapIndex = 0;
 
 			for (int i = 0; i < spriteDimCount; i++) {
-				int bitmapSize = bytesToShort(data, bitmapIndex);
-				bitmapInds.push_back(bitmapSize);
-				bitmapIndex += bitmapSize; //Move to next bitmap image
+				int bitmapSize = bytesToShort(data, bitmapDataIndex);
+				bitmapInds.push_back(bitmapIndex);
+				bitmapDataIndex += bitmapSize; //Move to next bitmap image
+				bitmapIndex += bitmapSize;
 			}
 
 			for (int i = 0; i < spriteDimCount; i++) {
-				int bitmapSize = bytesToShort(data, index);
+				int bitmapSize = bytesToShort(data, index);		
 				std::copy(data.begin()+index, data.begin()+index+bitmapSize, back_inserter(bitmapData));
 				index += bitmapSize;
 			}
@@ -180,49 +182,49 @@ void GameloftGraphics::method_1(int palette, int start, int stop, int copyPalett
 			stop = (spriteDims.size() / 2) - 1; //Get all sprites up to the last
 		}
 
-		if (field_22.empty()) {
+		if (sprites.empty()) {
 			for (int i = 0; i < paletteCount; i++) {
 				std::vector<J2MEImage> emptyVec;
-				field_22.push_back(emptyVec);
+				sprites.push_back(emptyVec);
 			}
 		}
 
-		if (field_22[palette].empty()) {
+		if (sprites[palette].empty()) {
 			for (int i = 0; i < (spriteDims.size() / 2); i++) {
-				field_22[palette].push_back(J2MEImage());
+				sprites[palette].push_back(J2MEImage());
 			}
 		}
 
 		if (copyPalette >= 0) {
 			// Copy from one palette to another
-			for (int i = 0; i <= stop; i++) {
-				field_22[palette][i] = field_22[copyPalette][i];
+			for (int i = start; i <= stop; i++) {
+				sprites[palette][i] = sprites[copyPalette][i];
 			}
 		} else {
-			int var14 = field_17;
-			field_17 = palette;
+			int var14 = spritePalette;
+			spritePalette = palette;
 
 			for (int i = start; i <= stop; i++) {
-				int var7 = i << 1;
+				int var7 = i * 2;
 				int spriteWidth = spriteDims[var7] & 0xFF; //Get width
 				int spriteHeight = spriteDims[var7 + 1] & 0xFF; //Get height
-				std::vector<int> var10;
-				if (spriteWidth > 0 && spriteHeight > 0 && !((var10 = method_11(i)).empty())) {
-					bool var11 = false;
+				std::vector<int> argbData;
+				if (spriteWidth > 0 && spriteHeight > 0 && !((argbData = method_11(i)).empty())) {
+					bool sprIsTransparent = false;
 					int spritePixelCount = spriteWidth * spriteHeight;
 
 					for (int j = 0; j < spritePixelCount; j++) {
-						if ((var10[j] & 0xFF000000) != 0xFF000000) {
-							var11 = true;
+						if ((argbData[j] & 0xFF000000) != 0xFF000000) {
+							sprIsTransparent = true;
 							break;
 						}
 					}
 
-					field_22[palette][i] = J2MEImage(var10, spriteWidth, spriteHeight, var11);
+					sprites[palette][i] = J2MEImage(argbData, spriteWidth, spriteHeight, sprIsTransparent);
 				}
 			}
 
-			field_17 = var14;
+			spritePalette = var14;
 		}
 	}
 }
@@ -233,43 +235,43 @@ std::vector<int> GameloftGraphics::method_11(int var1) {
 		int spriteWidth = spriteDims[var2] & 0xFF;
 		int spriteHeight = spriteDims[var2 + 1] & 0xFF;
 		std::vector<int> palette;
-		if (field_17 >= palettes.size() || (palette = palettes[field_17]).empty()) {
+		if (spritePalette >= palettes.size() || (palette = palettes[spritePalette]).empty()) {
 			return {};
 		} else {
-			//std::vector<int> var5 = field_5; //TODO TEST PERF OF THIS
+			//std::vector<int> var5 = argbBitmapData; //TODO TEST PERF OF THIS
 			int var8 = bitmapInds[var1] & 0xFFFF;
 			int argbBitmapInd = 0;
 			int spritePixelCount = spriteWidth * spriteHeight; //Total amount of pixels
 			if (bitDepth != 0x27F1) {
 				if (bitDepth == BIT_DEPTH_4) {
 					while (argbBitmapInd < spritePixelCount) {
-						field_5[argbBitmapInd++] = palette[bitmapData[var8] >> 4 & 0xF];
-						field_5[argbBitmapInd++] = palette[bitmapData[var8] & 0xF];
+						argbBitmapData[argbBitmapInd++] = palette[bitmapData[var8] >> 4 & 0xF];
+						argbBitmapData[argbBitmapInd++] = palette[bitmapData[var8] & 0xF];
 						var8++;
 					}
 				} else if (bitDepth == BIT_DEPTH_2) {
 					while (argbBitmapInd < spritePixelCount) {
-						field_5[argbBitmapInd++] = palette[bitmapData[var8] >> 6 & 3];
-						field_5[argbBitmapInd++] = palette[bitmapData[var8] >> 4 & 3];
-						field_5[argbBitmapInd++] = palette[bitmapData[var8] >> 2 & 3];
-						field_5[argbBitmapInd++] = palette[bitmapData[var8] & 3];
+						argbBitmapData[argbBitmapInd++] = palette[bitmapData[var8] >> 6 & 3];
+						argbBitmapData[argbBitmapInd++] = palette[bitmapData[var8] >> 4 & 3];
+						argbBitmapData[argbBitmapInd++] = palette[bitmapData[var8] >> 2 & 3];
+						argbBitmapData[argbBitmapInd++] = palette[bitmapData[var8] & 3];
 						var8++;
 					}
 				} else if (bitDepth == BIT_DEPTH_1) {
 					while (argbBitmapInd < spritePixelCount) {
-						field_5[argbBitmapInd++] = palette[bitmapData[var8] >> 7 & 1];
-						field_5[argbBitmapInd++] = palette[bitmapData[var8] >> 6 & 1];
-						field_5[argbBitmapInd++] = palette[bitmapData[var8] >> 5 & 1];
-						field_5[argbBitmapInd++] = palette[bitmapData[var8] >> 4 & 1];
-						field_5[argbBitmapInd++] = palette[bitmapData[var8] >> 3 & 1];
-						field_5[argbBitmapInd++] = palette[bitmapData[var8] >> 2 & 1];
-						field_5[argbBitmapInd++] = palette[bitmapData[var8] >> 1 & 1];
-						field_5[argbBitmapInd++] = palette[bitmapData[var8] & 1];
+						argbBitmapData[argbBitmapInd++] = palette[bitmapData[var8] >> 7 & 1];
+						argbBitmapData[argbBitmapInd++] = palette[bitmapData[var8] >> 6 & 1];
+						argbBitmapData[argbBitmapInd++] = palette[bitmapData[var8] >> 5 & 1];
+						argbBitmapData[argbBitmapInd++] = palette[bitmapData[var8] >> 4 & 1];
+						argbBitmapData[argbBitmapInd++] = palette[bitmapData[var8] >> 3 & 1];
+						argbBitmapData[argbBitmapInd++] = palette[bitmapData[var8] >> 2 & 1];
+						argbBitmapData[argbBitmapInd++] = palette[bitmapData[var8] >> 1 & 1];
+						argbBitmapData[argbBitmapInd++] = palette[bitmapData[var8] & 1];
 						var8++;
 					}
 				} else if (bitDepth == BIT_DEPTH_8) {
 					while (argbBitmapInd < spritePixelCount) {
-						field_5[argbBitmapInd++] = palette[bitmapData[var8++] & 0xFF];
+						argbBitmapData[argbBitmapInd++] = palette[bitmapData[var8++] & 0xFF];
 					}
 				} else if (bitDepth == 0x56F2) {
 					while (argbBitmapInd < spritePixelCount) {
@@ -278,12 +280,12 @@ std::vector<int> GameloftGraphics::method_11(int var1) {
 						if (var26 > 127) {
 							for (int i = var26 - 0x80;
 							i-- > 0;
-							field_5[argbBitmapInd++] = palette[bitmapData[var8++] & 0xFF]) {}
+							argbBitmapData[argbBitmapInd++] = palette[bitmapData[var8++] & 0xFF]) {}
 						// If RLE tag
 						} else {
 							for (int i = palette[bitmapData[var8++] & 0xFF];
 							var26-- > 0;
-							field_5[argbBitmapInd++] = i) {}
+							argbBitmapData[argbBitmapInd++] = i) {}
 						}
 					}
 				}
@@ -297,15 +299,15 @@ std::vector<int> GameloftGraphics::method_11(int var1) {
 
 						for(int var25 = var11 - 0x80;
 							var25-- > 0;
-							field_5[argbBitmapInd++] = var13) {}
+							argbBitmapData[argbBitmapInd++] = var13) {}
 					// If uncompressed data
 					} else {
-						field_5[argbBitmapInd++] = palette[var11];
+						argbBitmapData[argbBitmapInd++] = palette[var11];
 					}
 				}
 			}
 
-			return field_5;
+			return argbBitmapData;
 		}
 	} else {
 		return {};
@@ -318,9 +320,20 @@ std::vector<int> GameloftGraphics::method_11(int var1) {
  * @param spriteNum Number of sprite
  */
 J2MEImage GameloftGraphics::getSprite(int palette, int spriteNum) {
-	if (palette < paletteCount && !field_22[palette].empty() && spriteNum < field_22[palette].size()) {
-		return field_22[palette][spriteNum];
+	int spritePalette = 0;
+	int spriteBoxWidth = spriteDims[spriteNum*2] & 0xFF;
+	int spriteBoxHeight = spriteDims[spriteNum*2 + 1] & 0xFF;
+	J2MEImage image;
+	if (spritePalette < sprites.size() && spriteNum < sprites[spritePalette].size() &&
+		/*!sprites.empty() &&*/ !sprites[spritePalette].empty()) {
+		image = sprites[spritePalette][spriteNum];
 	} else {
-		return {std::vector<int>(), 0, 0, false}; //Empty image
+		std::vector<int> rawImgData = method_11(spriteNum);
+		if (rawImgData.empty()) {
+			spriteBoxWidth = 0;
+			spriteBoxHeight = 0;
+		}
+		image = {rawImgData, spriteBoxWidth, spriteBoxHeight, isTransparent}; //Empty image
 	}
+	return image;
 }

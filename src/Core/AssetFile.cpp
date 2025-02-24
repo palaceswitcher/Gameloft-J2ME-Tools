@@ -55,7 +55,7 @@ GenericAssetFile::GenericAssetFile(std::vector<unsigned char> fData, std::string
 			int subFileSize = getIntFromBytes(data, index);
 
 			// If the expected offset locations exceed the bounds of the file, it can be assumed that this format does not match
-			if (subFileOffset >= packFileSize - (fileCount * 8 + 1) || subFileSize >= packFileSize - (fileCount * 8 + 1)) {
+			if (subFileOffset > packFileSize - (fileCount * 8 + 1) || subFileSize > packFileSize - (fileCount * 8 + 1)) {
 				index = 0; //Clear any data found if the header is found to be invalid
 				matchFound = false; //We can safely assume that it failed the match if any metadata was found to be invalid
 				break;
@@ -138,6 +138,20 @@ GenericAssetFile::GenericAssetFile(std::vector<unsigned char> fData, std::string
 		}
 	}
 
+	// Match for graphics format
+	matchFound = true;
+	const unsigned char gfxFileSig[] = {0xDF, 0x03, 0x01, 0x01, 0x01, 0x01};
+	for (int i = 0; i < 6; i++) {
+		if (data[i] != gfxFileSig[i]) {
+			matchFound = false;
+			break;
+		}
+	}
+	if (matchFound) {
+		format = FORMAT_FILE_GFX;
+		return;
+	}
+
 	// Match for minimal asset pack format
 	matchFound = true; //This is true until proven otherwise
 	index = 0;
@@ -146,7 +160,7 @@ GenericAssetFile::GenericAssetFile(std::vector<unsigned char> fData, std::string
 	std::vector<int> packFileOffsets;
 	while (index >= 0 && index < packFileSize) {
 		int fileSize = getShortFromBytes(data, index);
-		if (fileSize < 0 || fileSize >= packFileSize || index + fileSize > packFileSize) {
+		if (fileSize <= 0 || fileSize >= packFileSize || index + fileSize > packFileSize) {
 			index = 0;
 			matchFound = false;
 			break;
@@ -166,19 +180,5 @@ GenericAssetFile::GenericAssetFile(std::vector<unsigned char> fData, std::string
 			}
 		}
 		format = FORMAT_PK_MIN;
-		return;
-	}
-
-	// Match for graphics format
-	matchFound = true;
-	const unsigned char gfxFileSig[] = {0xDF, 0x03, 0x01, 0x01, 0x01, 0x01};
-	for (int i = 0; i < 6; i++) {
-		if (data[i] != gfxFileSig[i]) {
-			matchFound = false;
-			break;
-		}
-	}
-	if (matchFound) {
-		format = FORMAT_FILE_GFX;
 	}
 }

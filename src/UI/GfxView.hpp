@@ -4,10 +4,14 @@
 #include "AssetFile.hpp"
 #include "GfxAsset.hpp"
 #include <vector>
-#include <memory>
 
 // Add a file to the list of loaded graphics
-void addToGfxWindow(GenericAssetFile* file);
+namespace UI {
+/**
+ * Adds a gfx file to the gfx window and returns the index of the 
+ */
+int addToGfxWindow(GfxAsset* file);
+}
 
 // Render the graphics view window.
 void renderGfxWindow(SDL_Window* window, bool& opened);
