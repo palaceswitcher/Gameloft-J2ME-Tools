@@ -57,7 +57,8 @@ jobs:
     - name: Setup SDL
       # You may pin to the exact commit or the version.
       # uses: libsdl-org/setup-sdl@0b4058be1a69a43f9875e9a17f41e636495f5852
-      uses: libsdl-org/setup-sdl@v1
+      uses: libsdl-org/setup-sdl@main
+      id: sdl
       with:
         # Required version of SDL (2.x.y, 2-any, 2-latest, 2-head, 3-head), or git hash
         version: 3-latest # default is 2-any
@@ -66,7 +67,7 @@ jobs:
         # CMake build type (Release/Debug/RelWithDebInfo/MinSizeRel)
         build-type: Release
         # Install dependencies (supports apt-get, dnf, brew, and msys2-pacman)
-        install-linux-dependencies: apt-get
+        install-linux-dependencies: true
     
     - name: Configure CMake
       # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
