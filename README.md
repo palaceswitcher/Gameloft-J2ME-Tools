@@ -1,6 +1,6 @@
 # Gameloft J2ME Tools
 
-A GUI tool and scripts for modifying Gameloft's J2ME game assets.
+A GUI tool and Python scripts for modifying Gameloft's J2ME asset files.
 
 ## Building
 
