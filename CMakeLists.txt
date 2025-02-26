@@ -43,7 +43,7 @@ add_library(ImGui
     include/imgui/backends/imgui_impl_opengl2.cpp
 )
 
-target_link_libraries(ImGui PRIVATE SDL3)
+target_link_libraries(ImGui SDL3::SDL3)
 
 # Include source directories and add executable
 include_directories(include)
