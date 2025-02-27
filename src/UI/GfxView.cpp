@@ -18,18 +18,6 @@ int UI::addToGfxWindow(GfxAsset* file) {
 	return 0;
 }
 
-void renderSprites(GfxAsset* gfx, SDL_Renderer* ren) {
-	int spriteCount = gfx->gfx.sprites[0].size();
-	for (int i = 0; i < spriteCount; i++) {
-		J2MEImage sprite = gfx->gfx.getSprite(0, i);
-		std::vector<int> imgData = sprite.data;
-		SDL_Surface* surf = SDL_CreateSurfaceFrom(sprite.width, sprite.height, SDL_PIXELFORMAT_ARGB8888, imgData.data(), sprite.width*4);
-
-		SDL_Texture* texture = SDL_CreateTextureFromSurface(ren, surf);
-		ImGui::Image((ImTextureID)(intptr_t)texture, ImVec2(sprite.width, sprite.height));
-	}
-}
-
 void renderGfxWindow(SDL_Window* window, bool &opened) {
 	SDL_Renderer* ren = SDL_GetRenderer(window); //Get renderer from window
 
@@ -61,7 +49,7 @@ void renderGfxWindow(SDL_Window* window, bool &opened) {
 						float spriteDrawHeight = sprite.height;
 						ImVec2 min = ImGui::GetItemRectMax();
 						ImVec2 max = ImGui::GetItemRectMin();
-						ImVec2 center = ImVec2(min.x + (max.x - min.x - spriteDrawWidth) * 0.5f, min.y + (max.y - min.y - spriteDrawHeight) * 0.5f);
+						ImVec2 center = ImVec2(min.x + ceil((max.x - min.x - spriteDrawWidth) * 0.5f), min.y + floor((max.y - min.y - spriteDrawHeight) * 0.5f));
 						ImDrawList* draw_list = ImGui::GetWindowDrawList();
 						draw_list->AddImage((ImTextureID)(intptr_t)texture, center, ImVec2(center.x+spriteDrawWidth, center.y+spriteDrawHeight));
 					}
