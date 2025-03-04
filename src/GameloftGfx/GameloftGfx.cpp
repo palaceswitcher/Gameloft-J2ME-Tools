@@ -169,13 +169,6 @@ void GameloftGraphics::loadData(std::vector<unsigned char> data, int index) {
 	}
 }
 
-/**
- * Initialize a range of sprites from bitmap data or copy them from one palette to another. Setting copyPalette to -1 will initialize the sprites from bitmap data.
- * @param palette Palette number
- * @param start Starting image number
- * @param stop Last image number, last image if -1
- * @param copyPalette Palette to copy the sprites from, sprites are constructed from bitmap data if -1.
- */
 void GameloftGraphics::method_1(int palette, int start, int stop, int copyPalette) {
 	if (!spriteDims.empty()) {
 		if (stop == -1) {
@@ -324,7 +317,7 @@ J2MEImage GameloftGraphics::getSprite(int palette, int spriteNum) {
 	int spriteBoxWidth = spriteDims[spriteNum*2] & 0xFF;
 	int spriteBoxHeight = spriteDims[spriteNum*2 + 1] & 0xFF;
 	J2MEImage image;
-	if (spritePalette < sprites.size() && spriteNum < sprites[spritePalette].size() &&
+	if (spritePalette < paletteCount && spriteNum < sprites[spritePalette].size() &&
 		/*!sprites.empty() &&*/ !sprites[spritePalette].empty()) {
 		image = sprites[spritePalette][spriteNum];
 	} else {

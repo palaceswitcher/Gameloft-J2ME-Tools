@@ -10,7 +10,7 @@ namespace UI {
 /**
  * Adds a gfx file to the gfx window and returns the index of the 
  */
-int addToGfxWindow(GfxAsset* file);
+void addToGfxWindow(GfxAsset* file, SDL_Renderer* ren);
 }
 
 // Render the graphics view window.

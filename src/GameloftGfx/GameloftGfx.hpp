@@ -53,7 +53,15 @@ struct GameloftGraphics {
 	std::vector<std::vector<J2MEImage>> sprites;
 	int field_26 = 0;
 	void loadData(std::vector<unsigned char> data, int index = 0);
-	void method_1(int var1, int var2, int var3, int var4);
+
+	/**
+	 * Initialize a range of sprites from bitmap data or copy them from one palette to another. Setting copyPalette to -1 will initialize the sprites from bitmap data.
+	 * @param palette Palette number
+	 * @param start Starting image number
+	 * @param stop Last image number, last image if -1
+	 * @param copyPalette Palette to copy the sprites from, sprites are constructed from bitmap data if -1.
+	 */
+	void method_1(int palette, int start, int stop, int copyPalette);
 	std::vector<int> method_11(int var1);
 	J2MEImage getSprite(int palette, int spriteNum);
 };

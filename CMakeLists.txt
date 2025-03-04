@@ -19,6 +19,8 @@ if(NATIVE_OPTIMIZE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
 endif()
 
+set(CMAKE_CXX_FLAGD "${CMAKE_CXX_FLAGS} -Wall -Werror -Wextra -Wpedantic")
+
 if(SDL_VENDORED)
     add_subdirectory(vendored/SDL EXCLUDE_FROM_ALL)
 else()
