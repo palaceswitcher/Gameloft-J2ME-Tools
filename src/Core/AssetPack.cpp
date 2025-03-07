@@ -62,3 +62,65 @@ AssetPack::AssetPack(std::string fPath, std::string fName, std::vector<unsigned 
 		subFiles.push_back(loadAsset(subFileData, subFileName, ""));
 	}
 }
+
+void insertInt(std::vector<unsigned char>& vec, int num) {
+	vec.push_back(num);
+	vec.push_back((num >> 8) & 0xFF);
+	vec.push_back((num >> 16) & 0xFF);
+	vec.push_back((num >> 24) & 0xFF);
+}
+
+void insertShort(std::vector<unsigned char>& vec, int num) {
+	vec.push_back(num);
+	vec.push_back((num >> 8) & 0xFF);
+}
+
+void AssetPack::refreshData() {
+	std::cout << "asset pack data refresh\n";
+	std::vector<unsigned char> fData; //Exported pack data (including header)
+	std::vector<unsigned char> payload; //Exported pack data
+	std::vector<int> fileStartOffs;
+	std::vector<int> fileSizes;
+	// Compile raw subfile data into payload
+	int index = 0;
+	for (auto& subFile : subFiles) {
+		int fileSize = subFile->data.size();
+		fileStartOffs.push_back(index);
+		fileSizes.push_back(fileSize);
+		payload.insert(payload.end(), subFile->data.begin(), subFile->data.end());
+		index += fileSize;
+	}
+	fileStartOffs.push_back(payload.size()); //Insert last offset at end of file (for offset-only formats)
+	int fileCount = subFiles.size();
+	switch (format) {
+	case FORMAT_PK_OFFS:
+		insertShort(fData, fileStartOffs.size()); //Insert file size
+		for (auto offs : fileStartOffs) {
+			insertInt(fData, offs);
+		}
+		fData.insert(fData.end(), payload.begin(), payload.end()); //Add payload after header
+		break;
+	case FORMAT_PK_OFFS_ALT:
+		insertInt(fData, fileStartOffs.size());
+		for (auto offs : fileStartOffs) {
+			insertInt(fData, offs);
+		}
+		fData.insert(fData.end(), payload.begin(), payload.end()); //Add payload after header
+		break;
+	case FORMAT_PK_OFFS_SIZE:
+		fData.push_back((char)fileCount); //File count
+		for (int i = 0; i < fileCount; i++) {
+			insertInt(fData, fileStartOffs[i]);
+			insertInt(fData, fileSizes[i]);
+		}
+		fData.insert(fData.end(), payload.begin(), payload.end()); //Add payload after header
+		break;
+	case FORMAT_PK_MIN:
+		for (int i = 0; i < fileCount; i++) {
+			insertShort(fData, fileSizes[i]);
+			fData.insert(fData.end(), payload.begin()+fileStartOffs[i], payload.begin()+fileStartOffs[i]+fileSizes[i]);
+		}
+		break;
+	}
+	data = fData;
+}

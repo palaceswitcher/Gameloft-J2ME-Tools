@@ -2,6 +2,7 @@
 #define FILEVIEW_HPP_
 #include <SDL3/SDL.h>
 #include "AssetFile.hpp"
+#include "AssetPack.hpp"
 #include <vector>
 #include <memory>
 
@@ -14,6 +15,7 @@ GenericAssetFile* getSelectedFile();
 struct FileSource {
 	std::vector<std::unique_ptr<GenericAssetFile>>* fileVector; //Vector that the file belongs to
 	std::vector<std::unique_ptr<GenericAssetFile>>::iterator fileIter; //Iterator of the file
+	AssetPack* parentFile = nullptr; //Asset pack the file belongs to, if applicable
 };
 
 void renderFileView(SDL_Window* window, std::vector<std::unique_ptr<GenericAssetFile>>& files);

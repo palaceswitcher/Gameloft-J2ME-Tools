@@ -44,7 +44,7 @@ void SDLCALL fileOpenCallback(void* pFilesOpened, const char* const* fileList, i
 }
 
 void SDLCALL fileSaveCallback(void* pfileData, const char* const* fileList, int filter) {
-	std::vector<char>* fileData = reinterpret_cast<std::vector<char>*>(pfileData);
+	std::vector<unsigned char>* fileData = reinterpret_cast<std::vector<unsigned char>*>(pfileData);
 	if (!fileList) {
 		SDL_Log("An error occured: %s", SDL_GetError());
 	} else if (!*fileList) {
@@ -52,5 +52,5 @@ void SDLCALL fileSaveCallback(void* pfileData, const char* const* fileList, int 
 		return;
 	}
 	std::ofstream outFile(*fileList, std::ios::out|std::ios::binary);
-	outFile.write(fileData->data(), fileData->size()); //Write saved file
+	outFile.write(reinterpret_cast<const char*>(fileData->data()), fileData->size()); //Write saved file
 }
