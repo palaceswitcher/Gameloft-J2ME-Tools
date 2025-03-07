@@ -15,7 +15,7 @@ void openGfxWindow() {
 	gfxWindowOpen = true;
 }
 
-bool UI::render(SDL_Renderer* ren, SDL_Window* window, std::vector<std::unique_ptr<GenericAssetFile>> &files) {
+bool UI::render(SDL_Renderer* ren, SDL_Window* window) {
 	// Main app window
 	ImGuiWindowFlags flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoBringToFrontOnFocus;
 	ImGuiViewport* viewport = ImGui::GetMainViewport();
@@ -28,7 +28,7 @@ bool UI::render(SDL_Renderer* ren, SDL_Window* window, std::vector<std::unique_p
 		if (ImGui::BeginMenuBar()) {
 			if (ImGui::BeginMenu("File")) {
 				if (ImGui::MenuItem("Open")) {
-					SDL_ShowOpenFileDialog(fileOpenCallback, &files, window, NULL, 0, NULL, true);
+					SDL_ShowOpenFileDialog(fileOpenCallback, UI::FileMenu::getFiles(), window, NULL, 0, NULL, true);
 				}
 				ImGui::EndMenu();
 			}
@@ -36,17 +36,29 @@ bool UI::render(SDL_Renderer* ren, SDL_Window* window, std::vector<std::unique_p
 		}
 
 		// File List
-		renderFileView(window, files);
+		renderFileView(window);
 
 		ImGui::End();
 	}
 	
-	//TODO FINISH ASSET VIEW STUFF
-	GenericAssetFile* selectedFile = UI::getSelectedFile();
+	// Remove any files that were queued for removal
+	std::vector<FileSource> removedFiles = UI::FileMenu::popRemovedFiles();
+	for (auto removedFile : removedFiles) {
+		GenericAssetFile* file = (*removedFile.fileIter).get();
+		if (file != nullptr) {
+			if (file->format == FORMAT_FILE_GFX) {
+				GfxAsset* gfxFile = static_cast<GfxAsset*>(file);
+				UI::GfxView::remove(gfxFile);
+			}
+			UI::FileMenu::remove(removedFile);
+		}
+	}
+
+	GenericAssetFile* selectedFile = UI::FileMenu::popSelectedFile();
 	if (selectedFile != nullptr) {
 		if (selectedFile->format == FORMAT_FILE_GFX) {
 			GfxAsset* gfxFile = static_cast<GfxAsset*>(selectedFile);
-			UI::addToGfxWindow(gfxFile, ren);
+			UI::GfxView::add(gfxFile, ren);
 		}
 	}
 	renderGfxWindow(window, gfxWindowOpen);

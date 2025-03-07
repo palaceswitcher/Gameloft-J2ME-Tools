@@ -58,7 +58,6 @@ int main(int argc, char* argv[])
 	ImGui_ImplSDLRenderer3_Init(renderer);
 
 	// Variables
-	std::vector<std::unique_ptr<GenericAssetFile>> openedFiles; //Every opened file
 	ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
 	// Main loop
@@ -98,7 +97,7 @@ int main(int argc, char* argv[])
 		ImGui_ImplSDL3_NewFrame();
 		ImGui::NewFrame();
 
-		UI::render(renderer, window, openedFiles); //Render UI
+		UI::render(renderer, window); //Render UI
 
 		// Rendering
 		ImGui::Render();

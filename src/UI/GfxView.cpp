@@ -14,14 +14,6 @@ struct OpenedGfxAsset {
 	GfxAsset* gfxFile;
 	int selPalette = 0; //Selected palette
 	std::vector<std::vector<SDL_Texture*>> textureBuf; //Sprite texture buffer
-	/*~OpenedGfxAsset() {
-		std::cout << "opened gfx asset destructor called\n";
-		for (auto& textVec : textureBuf) {
-			for (auto& texture : textVec) {
-				SDL_DestroyTexture(texture);
-			}
-		}
-	}*/
 };
 
 OpenedGfxAsset* removedFile;
@@ -49,7 +41,7 @@ void refreshTextureBuf(std::vector<std::vector<SDL_Texture*>>& textureBuf, GfxAs
 	}
 }
 
-void UI::addToGfxWindow(GfxAsset* file, SDL_Renderer* ren) {
+void UI::GfxView::add(GfxAsset* file, SDL_Renderer* ren) {
 	auto it = std::find_if(openedGfxFiles.begin(), openedGfxFiles.end(), [&file](const OpenedGfxAsset &g) {
 		return g.gfxFile == file;
 	});
@@ -59,6 +51,14 @@ void UI::addToGfxWindow(GfxAsset* file, SDL_Renderer* ren) {
 		openedGfxFiles.push_back(openedGfxAsset);
 	} else {
 		return;
+	}
+}
+
+void UI::GfxView::remove(GfxAsset* file) {
+	if (!openedGfxFiles.empty()) {
+		openedGfxFiles.erase(std::remove_if(openedGfxFiles.begin(), openedGfxFiles.end(), [file](const OpenedGfxAsset &g) {
+			return g.gfxFile == file;
+		}));
 	}
 }
 

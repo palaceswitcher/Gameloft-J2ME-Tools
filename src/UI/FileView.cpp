@@ -9,39 +9,62 @@
 #include <algorithm>
 #include <iostream>
 
-GenericAssetFile *selectedFile = nullptr;
-GenericAssetFile *rightClickedFile = nullptr; //File with an opened context menu
+std::vector<std::unique_ptr<GenericAssetFile>> openedFiles; //Every opened file
+GenericAssetFile* selectedFile = nullptr;
+FileSource rightClickedFile; //File with an opened context menu
+std::vector<FileSource> fileRemovalQueue; //Any files that were queued for removal
 
-GenericAssetFile *UI::getSelectedFile() {
-	GenericAssetFile *ret = selectedFile;
+std::vector<std::unique_ptr<GenericAssetFile>>* UI::FileMenu::getFiles() {
+	return &openedFiles;
+}
+
+GenericAssetFile* UI::FileMenu::popSelectedFile() {
+	GenericAssetFile* ret = selectedFile;
 	selectedFile = nullptr;
 	return ret;
 }
 
+std::vector<FileSource> UI::FileMenu::popRemovedFiles() {
+	std::vector<FileSource> removedFiles = fileRemovalQueue;
+	fileRemovalQueue.clear();
+	return removedFiles;
+}
+
+void UI::FileMenu::remove(FileSource fileSrc) {
+	GenericAssetFile* file = (*fileSrc.fileIter).get();
+	std::vector<std::unique_ptr<GenericAssetFile>>* fileVec = fileSrc.fileVector;
+	fileVec->erase(std::remove_if(fileVec->begin(), fileVec->end(), [file](const std::unique_ptr<GenericAssetFile> &g) {
+		return g.get() == file;
+	}));
+}
+
 // Renders the popup context menu for a generic file, only to be used in file menu.
-void enableFileContextPopup(SDL_Window *window) {
-	if (rightClickedFile == nullptr) {
+void enableFileContextPopup(SDL_Window* window) {
+	GenericAssetFile* file;
+	if ((rightClickedFile.fileVector) == nullptr) {
 		return;
+	} else {
+		file = (*rightClickedFile.fileIter).get();
 	}
 	if (ImGui::BeginPopup("FileContextPopup")) {
 		if (ImGui::MenuItem("Export")) {
-			SDL_ShowSaveFileDialog(fileSaveCallback, &(rightClickedFile->data), window, NULL, 0, NULL);
+			SDL_ShowSaveFileDialog(fileSaveCallback, &(file->data), window, NULL, 0, NULL);
 		}
 		if (ImGui::MenuItem("Remove")) {
-			;
+			fileRemovalQueue.push_back(rightClickedFile);
 		}
 		ImGui::EndPopup();
 	}
 }
 
 // Return true if the objects are the same
-bool isDescendant(const GenericAssetFile *file, const GenericAssetFile *srcFile) {
+bool isDescendant(const GenericAssetFile* file, const GenericAssetFile* srcFile) {
 	if (file == srcFile) {
 		return true; //Failsafe if they are somehow the same object
 	}
 	if (file->format >= FORMAT_PK_OFFS) {
-		const AssetPack *packFile = static_cast<const AssetPack *>(file);
-		for (const auto &subFile : packFile->subFiles) {
+		const AssetPack* packFile = static_cast<const AssetPack*>(file);
+		for (const auto& subFile : packFile->subFiles) {
 			if (isDescendant(subFile.get(), srcFile)) {
 				return true;
 			}
@@ -55,10 +78,10 @@ bool isDescendant(const GenericAssetFile *file, const GenericAssetFile *srcFile)
  * @param fileSrc Location of the file being rendered
  * @param indentWidth width of the file's indentation
  */
-void renderFile(FileSource fileSrc, SDL_Window *window, float indentWidth) {
+void renderFile(FileSource fileSrc, SDL_Window* window, float indentWidth) {
 	// Pack file specific variables (if applicable)
-	AssetPack *packFile = nullptr; //Pack file being rendered
-	GenericAssetFile *file = (*fileSrc.fileIter).get(); //The file being rendered
+	AssetPack* packFile = nullptr; //Pack file being rendered
+	GenericAssetFile* file = (*fileSrc.fileIter).get(); //The file being rendered
 	bool treeNodeOpen = false;
 
 	std::string name = file->name;
@@ -67,11 +90,11 @@ void renderFile(FileSource fileSrc, SDL_Window *window, float indentWidth) {
 			selectedFile = file; //Select the clicked file
 		}
 	} else {
-		packFile = static_cast<AssetPack *>(file);
+		packFile = static_cast<AssetPack*>(file);
 		treeNodeOpen = ImGui::TreeNodeEx(packFile->name.c_str(), ImGuiTreeNodeFlags_OpenOnArrow); //Cache pack tree node open state for asset packs
 	}
 	if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
-		rightClickedFile = file;
+		rightClickedFile = fileSrc;
 		ImGui::OpenPopup("FileContextPopup");
 	}
 	// Drag and drop source for file
@@ -87,10 +110,16 @@ void renderFile(FileSource fileSrc, SDL_Window *window, float indentWidth) {
 		ImGui::Dummy(ImVec2(ImGui::GetWindowSize().x - indentWidth - ImGui::GetTextLineHeightWithSpacing(), ImGui::GetFontSize()));
 		ImGui::SetCursorPosY(fileYPos); //Draw dummy drop zone between files
 		if (ImGui::BeginDragDropTarget()) {
-			if (const ImGuiPayload *payload = ImGui::AcceptDragDropPayload("FILE_ITEM")) {
+			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("FILE_ITEM")) {
 				auto destIt = packFile->subFiles.begin(); //Insert point for this specific target
-				FileSource *droppedFileSrc = (FileSource *)payload->Data; //File that was dropped
-				if (*destIt != *droppedFileSrc->fileIter) {
+				FileSource* droppedFileSrc = (FileSource*)payload->Data; //File that was dropped
+				GenericAssetFile* droppedFile = (*droppedFileSrc->fileIter).get();
+				bool canBeDropped = true; //Used to determine if the file can be dropped. Assumed to be true if the file is not an asset pack
+				if (droppedFile->format >= FORMAT_PK_OFFS) {
+					AssetPack* droppedPackFile = static_cast<AssetPack*>(droppedFile);
+					canBeDropped = (&(droppedPackFile->subFiles) != fileSrc.fileVector) && !isDescendant(droppedPackFile, file); //The asset pack cannot be dropped into itself
+				}
+				if (canBeDropped && *destIt != *droppedFileSrc->fileIter) {
 					// Move to other vector
 					if (droppedFileSrc->fileVector != &packFile->subFiles) {
 						packFile->subFiles.insert(destIt, std::move(*(droppedFileSrc->fileIter)));
@@ -125,13 +154,13 @@ void renderFile(FileSource fileSrc, SDL_Window *window, float indentWidth) {
 	ImGui::Dummy(ImVec2(ImGui::GetWindowSize().x - indentWidth - ImGui::GetTextLineHeightWithSpacing(), ImGui::GetFontSize()));
 	ImGui::SetCursorPosY(fileYPos); //Draw dummy drop zone between files
 	if (ImGui::BeginDragDropTarget()) {
-		if (const ImGuiPayload *payload = ImGui::AcceptDragDropPayload("FILE_ITEM")) {
-			FileSource *droppedFileSrc = (FileSource *)payload->Data; //File that was dropped in
-			GenericAssetFile *droppedFile = (*droppedFileSrc->fileIter).get();
+		if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("FILE_ITEM")) {
+			FileSource* droppedFileSrc = (FileSource*)payload->Data; //File that was dropped in
+			GenericAssetFile* droppedFile = (*droppedFileSrc->fileIter).get();
 
 			bool canBeDropped = true; //Used to determine if the file can be dropped. Assumed to be true if the file is not an asset pack
 			if (droppedFile->format >= FORMAT_PK_OFFS) {
-				AssetPack *droppedPackFile = static_cast<AssetPack *>(droppedFile);
+				AssetPack* droppedPackFile = static_cast<AssetPack*>(droppedFile);
 				canBeDropped = (&(droppedPackFile->subFiles) != fileSrc.fileVector) && !isDescendant(droppedPackFile, file); //The asset pack cannot be dropped into itself
 			}
 			if (canBeDropped) {
@@ -146,10 +175,10 @@ void renderFile(FileSource fileSrc, SDL_Window *window, float indentWidth) {
 						if (destIt >= fileSrc.fileVector->end()) {
 							destIt = fileSrc.fileIter; //Don't insert out of bounds if the file is moved within the same vector
 						}
-						if (droppedFileSrc->fileIter < fileSrc.fileIter + 1) {
-							std::rotate(droppedFileSrc->fileIter, droppedFileSrc->fileIter + 1, fileSrc.fileIter + 1);
-						} else if (droppedFileSrc->fileIter > fileSrc.fileIter + 1) {
-							std::rotate(destIt, droppedFileSrc->fileIter, droppedFileSrc->fileIter + 1);
+						if (droppedFileSrc->fileIter < fileSrc.fileIter+1) {
+							std::rotate(droppedFileSrc->fileIter, droppedFileSrc->fileIter + 1, fileSrc.fileIter+1);
+						} else if (droppedFileSrc->fileIter > fileSrc.fileIter+1) {
+							std::rotate(destIt, droppedFileSrc->fileIter, droppedFileSrc->fileIter+1);
 						}
 					}
 					if (droppedFileSrc->parentFile != nullptr) {
@@ -166,7 +195,7 @@ void renderFile(FileSource fileSrc, SDL_Window *window, float indentWidth) {
 	}
 }
 
-void renderFileView(SDL_Window *window, std::vector<std::unique_ptr<GenericAssetFile>> &files) {
+void renderFileView(SDL_Window* window) {
 	ImGui::Text("Files"); //Child title
 	ImGui::BeginChild("FileViewPanel", ImVec2(250, 0), ImGuiChildFlags_Borders | ImGuiChildFlags_ResizeX, ImGuiWindowFlags_NoMove);
 	float indentWidth = 0;
@@ -176,18 +205,18 @@ void renderFileView(SDL_Window *window, std::vector<std::unique_ptr<GenericAsset
 	ImGui::Dummy(ImVec2(ImGui::GetWindowSize().x - indentWidth - 16.0f, 12.0f));
 	ImGui::SetCursorPosY(fileYPos); //Draw dummy drop zone between files
 	if (ImGui::BeginDragDropTarget()) {
-		if (const ImGuiPayload *payload = ImGui::AcceptDragDropPayload("FILE_ITEM")) {
-			auto destIt = files.begin(); //Insert point for this specific target
-			FileSource *droppedFileSrc = (FileSource *)payload->Data;
+		if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("FILE_ITEM")) {
+			auto destIt = openedFiles.begin(); //Insert point for this specific target
+			FileSource* droppedFileSrc = (FileSource*)payload->Data;
 			if (*destIt != *droppedFileSrc->fileIter) {
-				if (droppedFileSrc->fileVector != &files) {
-					files.insert(destIt, std::move(*(droppedFileSrc->fileIter)));
+				if (droppedFileSrc->fileVector != &openedFiles) {
+					openedFiles.insert(destIt, std::move(*(droppedFileSrc->fileIter)));
 					droppedFileSrc->fileVector->erase(droppedFileSrc->fileIter);
 				} else {
 					if (droppedFileSrc->fileIter < destIt) {
-						std::rotate(droppedFileSrc->fileIter, droppedFileSrc->fileIter + 1, destIt + 1);
+						std::rotate(droppedFileSrc->fileIter, droppedFileSrc->fileIter+1, destIt+1);
 					} else if (droppedFileSrc->fileIter > destIt) {
-						std::rotate(destIt, droppedFileSrc->fileIter, droppedFileSrc->fileIter + 1);
+						std::rotate(destIt, droppedFileSrc->fileIter, droppedFileSrc->fileIter+1);
 					}
 				}
 				if (droppedFileSrc->parentFile != nullptr) {
@@ -198,8 +227,8 @@ void renderFileView(SDL_Window *window, std::vector<std::unique_ptr<GenericAsset
 		ImGui::EndDragDropTarget();
 		ImGui::Dummy(ImVec2(ImGui::GetWindowSize().x - indentWidth - ImGui::GetTextLineHeightWithSpacing(), ImGui::GetFontSize()));
 	}
-	for (int i = 0; i < files.size(); i++) {
-		renderFile({&files, files.begin() + i, nullptr}, window, indentWidth);
+	for (int i = 0; i < openedFiles.size(); i++) {
+		renderFile({&openedFiles, openedFiles.begin()+i, nullptr}, window, indentWidth);
 	}
 	enableFileContextPopup(window); //Show generic file popup when right clicked
 	ImGui::EndChild();

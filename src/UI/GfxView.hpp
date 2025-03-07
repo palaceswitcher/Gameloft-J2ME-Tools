@@ -7,10 +7,14 @@
 
 // Add a file to the list of loaded graphics
 namespace UI {
-/**
- * Adds a gfx file to the gfx window and returns the index of the 
- */
-void addToGfxWindow(GfxAsset* file, SDL_Renderer* ren);
+namespace GfxView {
+
+// Adds a GFX file to the GFX window
+void add(GfxAsset* file, SDL_Renderer* ren);
+
+// Remove a file from the GFX view
+void remove(GfxAsset* file);
+}
 }
 
 // Render the graphics view window.

@@ -6,7 +6,7 @@
 #include <memory>
 
 namespace UI {
-bool render(SDL_Renderer* ren, SDL_Window* window, std::vector<std::unique_ptr<GenericAssetFile>> &files);
+bool render(SDL_Renderer* ren, SDL_Window* window);
 }
 
 #endif
