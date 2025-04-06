@@ -78,13 +78,14 @@ bool isDescendant(const GenericAssetFile* file, const GenericAssetFile* srcFile)
  * @param fileSrc Location of the file being rendered
  * @param indentWidth width of the file's indentation
  */
-void renderFile(FileSource fileSrc, SDL_Window* window, float indentWidth) {
+void renderFile(FileSource fileSrc, SDL_Window* window, float indentWidth, int& index) {
 	// Pack file specific variables (if applicable)
 	AssetPack* packFile = nullptr; //Pack file being rendered
 	GenericAssetFile* file = (*fileSrc.fileIter).get(); //The file being rendered
 	bool treeNodeOpen = false;
 
 	std::string name = file->name;
+	ImGui::PushID(index); //Index-based unique IDs
 	if (file->format < FORMAT_PK_OFFS) {
 		if (ImGui::Selectable(name.c_str(), false, ImGuiSelectableFlags_None)) {
 			selectedFile = file; //Select the clicked file
@@ -93,6 +94,7 @@ void renderFile(FileSource fileSrc, SDL_Window* window, float indentWidth) {
 		packFile = static_cast<AssetPack*>(file);
 		treeNodeOpen = ImGui::TreeNodeEx(packFile->name.c_str(), ImGuiTreeNodeFlags_OpenOnArrow); //Cache pack tree node open state for asset packs
 	}
+	ImGui::PopID(); //Pop ID
 	if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
 		rightClickedFile = fileSrc;
 		ImGui::OpenPopup("FileContextPopup");
@@ -135,7 +137,9 @@ void renderFile(FileSource fileSrc, SDL_Window* window, float indentWidth) {
 					if (droppedFileSrc->parentFile != nullptr) {
 						droppedFileSrc->parentFile->refreshData(); //Refresh asset pack the dropped file was moved from if needed
 					}
-					packFile->refreshData(); //Refresh pack file's data if the subfiles were changed
+					if (packFile != nullptr) {
+						packFile->refreshData(); //Refresh pack file's data if the subfiles were changed
+					}
 				}
 			}
 			ImGui::EndDragDropTarget();
@@ -143,7 +147,8 @@ void renderFile(FileSource fileSrc, SDL_Window* window, float indentWidth) {
 		}
 
 		for (int j = 0; j < packFile->subFiles.size(); j++) {
-			renderFile({&packFile->subFiles, packFile->subFiles.begin() + j, packFile}, window, indentWidth);
+			renderFile({&packFile->subFiles, packFile->subFiles.begin() + j, packFile}, window, indentWidth, index);
+			index++;
 		}
 		enableFileContextPopup(window); //Show generic file popup when right clicked
 		ImGui::TreePop();
@@ -196,6 +201,7 @@ void renderFile(FileSource fileSrc, SDL_Window* window, float indentWidth) {
 }
 
 void renderFileView(SDL_Window* window) {
+	int index = 0; //Used for file IDs in ImGui
 	ImGui::Text("Files"); //Child title
 	ImGui::BeginChild("FileViewPanel", ImVec2(250, 0), ImGuiChildFlags_Borders | ImGuiChildFlags_ResizeX, ImGuiWindowFlags_NoMove);
 	float indentWidth = 0;
@@ -228,7 +234,8 @@ void renderFileView(SDL_Window* window) {
 		ImGui::Dummy(ImVec2(ImGui::GetWindowSize().x - indentWidth - ImGui::GetTextLineHeightWithSpacing(), ImGui::GetFontSize()));
 	}
 	for (int i = 0; i < openedFiles.size(); i++) {
-		renderFile({&openedFiles, openedFiles.begin()+i, nullptr}, window, indentWidth);
+		renderFile({&openedFiles, openedFiles.begin()+i, nullptr}, window, indentWidth, index);
+		index++;
 	}
 	enableFileContextPopup(window); //Show generic file popup when right clicked
 	ImGui::EndChild();

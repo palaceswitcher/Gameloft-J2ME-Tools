@@ -19,6 +19,7 @@
 int main(int argc, char* argv[])
 {
 	// Setup SDL
+	SDL_SetHint(SDL_HINT_VIDEO_X11_NET_WM_BYPASS_COMPOSITOR, "0"); //Don't disable compositor.
 	if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMEPAD))
 	{
 		printf("Error: SDL_Init(): %s\n", SDL_GetError());

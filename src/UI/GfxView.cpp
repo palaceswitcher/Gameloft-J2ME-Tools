@@ -73,9 +73,13 @@ void renderGfxWindow(SDL_Window* window, bool &opened) {
 	if (ImGui::Begin("GFX View", &opened)) {
 		float windowWidth = ImGui::GetWindowWidth();
 		if (ImGui::BeginTabBar("GfxViewTabs", tabFlags)) {
-			for (auto& file : openedGfxFiles) {
+			for (int i = 0; i < openedGfxFiles.size(); i++) {
+				OpenedGfxAsset file = openedGfxFiles[i];
 				GfxAsset* gfxFile = file.gfxFile;
-				if (ImGui::BeginTabItem(gfxFile->name.c_str(), &curFileOpen, 0)) {
+				ImGui::PushID(i);
+				bool tabOpened = ImGui::BeginTabItem(gfxFile->name.c_str(), &curFileOpen, 0);
+				ImGui::PopID();
+				if (tabOpened) {
 					int spriteCount = gfxFile->gfx.sprites[file.selPalette].size(); //Number of sprites for the currently viewed file
 					int colCount = floor(windowWidth / textureBoxSize); //Number of columns
 					if (colCount <= 0) { colCount = 1; }
