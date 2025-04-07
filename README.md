@@ -10,10 +10,26 @@ The following build instructions should work for both Windows and Linux, provide
 - SDL3
 - CMake
 
+### Linux
+
 ```
 git clone --recursive https://github.com/palaceswitcher/Gameloft-J2ME-Tools
 cd Gameloft-J2ME-Tools
 mkdir build && cd build
 cmake ..
+make
+```
+
+### Windows (MSYS2)
+
+Using specifically UCRT64 is recommended, though other environments may also work under MSYS2.
+
+#### Building (MSYS2)
+
+```
+git clone --recursive https://github.com/palaceswitcher/Gameloft-J2ME-Tools
+cd Gameloft-J2ME-Tools
+mkdir build && cd build
+cmake -G "Unix Makefiles" ..
 make
 ```
