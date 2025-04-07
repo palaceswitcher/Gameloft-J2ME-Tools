@@ -6,6 +6,7 @@
 #include "FileDialog.hpp"
 #include "FileView.hpp"
 #include "GfxView.hpp"
+#include <iostream>
 #include <vector>
 #include <string>
 
@@ -49,6 +50,14 @@ bool UI::render(SDL_Renderer* ren, SDL_Window* window) {
 			if (file->format == FORMAT_FILE_GFX) {
 				GfxAsset* gfxFile = static_cast<GfxAsset*>(file);
 				UI::GfxView::remove(gfxFile);
+			} else if (file->format >= FORMAT_PK_OFFS) {
+				AssetPack* assetPack = static_cast<AssetPack*>(file);
+				for (auto& subFile : assetPack->subFiles) {
+					if (subFile->format == FORMAT_FILE_GFX) {
+						GfxAsset* gfxFile = static_cast<GfxAsset*>(subFile.get());
+						UI::GfxView::remove(gfxFile);
+					}
+				}
 			}
 			UI::FileMenu::remove(removedFile);
 		}

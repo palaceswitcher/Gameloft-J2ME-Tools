@@ -14,3 +14,8 @@ GfxAsset::GfxAsset(std::vector<unsigned char> fData, std::string fName, std::str
 	}
 }
 
+void GfxAsset::updateSpriteImages() {
+	for (int i = 0; i < gfx.paletteCount; i++) {
+		gfx.method_1(i, 0, -1, -1);
+	}
+}

@@ -11,6 +11,7 @@ class GfxAsset : public GenericAssetFile {
 public:
 	GameloftGraphics gfx;
 	GfxAsset(std::vector<unsigned char> fData, std::string fName, std::string fPath = ""); //Load GFX file from path
+	void updateSpriteImages();
 };
 
 #endif

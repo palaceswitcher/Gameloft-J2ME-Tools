@@ -26,6 +26,7 @@ void refreshTextureBuf(std::vector<std::vector<SDL_Texture*>>& textureBuf, GfxAs
 		}
 	}
 	textureBuf.clear();
+	gfxAsset->updateSpriteImages();
 	for (int i = 0; i < gfxAsset->gfx.sprites.size(); i++) {
 		std::vector<SDL_Texture*> textures;
 		for (int j = 0; j < gfxAsset->gfx.sprites[i].size(); j++) {
@@ -73,14 +74,59 @@ void renderGfxWindow(SDL_Window* window, bool &opened) {
 	if (ImGui::Begin("GFX View", &opened)) {
 		float windowWidth = ImGui::GetWindowWidth();
 		if (ImGui::BeginTabBar("GfxViewTabs", tabFlags)) {
-			for (int i = 0; i < openedGfxFiles.size(); i++) {
-				OpenedGfxAsset file = openedGfxFiles[i];
+			int i = 0;
+			for (auto& file : openedGfxFiles) {
 				GfxAsset* gfxFile = file.gfxFile;
+
 				ImGui::PushID(i);
 				bool tabOpened = ImGui::BeginTabItem(gfxFile->name.c_str(), &curFileOpen, 0);
 				ImGui::PopID();
 				if (tabOpened) {
 					int spriteCount = gfxFile->gfx.sprites[file.selPalette].size(); //Number of sprites for the currently viewed file
+					// Palette change
+					if (ImGui::InputInt("Palette", &file.selPalette)) {
+						if (file.selPalette >= file.textureBuf.size()) {
+							file.selPalette = file.textureBuf.size() - 1;
+						}
+					}
+					// Palette show
+					if (ImGui::TreeNode("Palettes")) {
+						int n = 0;
+						for (int p = 0; p < file.gfxFile->gfx.palettes.size(); p++) {
+							auto palette = file.gfxFile->gfx.palettes[p];
+							if (!palette.empty()) {
+								ImGui::Text("#%d", p);
+								ImGui::SameLine();
+								for (int c = 0; c < palette.size(); c++) {
+									int color = palette[c];
+									float a = ((color >> 24) & 0xFF) / 255.0f;
+									float r = ((color >> 16) & 0xFF) / 255.0f;
+									float g = ((color >> 8) & 0xFF) / 255.0f;
+									float b = (color & 0xFF) / 255.0f; //Convert ARGB color to floats
+									std::vector<float> colVec = {r, g, b, a};
+									if (c != 0) { ImGui::SameLine(); }
+									ImGui::PushID(n);
+									if (ImGui::ColorButton("##", ImVec4(r,g,b,a))) {
+										ImGui::OpenPopup("ColorPickerPopup");
+									}
+									if (ImGui::BeginPopup("ColorPickerPopup")) {
+										if (ImGui::ColorPicker4("Edit Color", &colVec[0])) {
+											int newCol = (int)(255.0f / colVec[3]) << 24 |
+												(int)(255.0f * colVec[0]) << 16 |
+												(int)(255.0f * colVec[1]) << 8 |
+												(int)(255.0f * colVec[2]); //Convert floats back to ARGB
+											file.gfxFile->gfx.palettes[p][c] = newCol;
+											refreshTextureBuf(file.textureBuf, file.gfxFile, ren);
+										}
+										ImGui::EndPopup();
+									}
+									ImGui::PopID();
+									n++;
+								}
+							}
+						}
+						ImGui::TreePop();
+					}
 					int colCount = floor(windowWidth / textureBoxSize); //Number of columns
 					if (colCount <= 0) { colCount = 1; }
 					for (int sp = 0; sp < spriteCount; sp++) {
@@ -106,6 +152,7 @@ void renderGfxWindow(SDL_Window* window, bool &opened) {
 					waitingFileRemove = true;
 					curFileOpen = true;
 				}
+				i++;
 			}
 			ImGui::EndTabBar();
 		}

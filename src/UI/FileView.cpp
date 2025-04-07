@@ -160,6 +160,7 @@ void renderFile(FileSource fileSrc, SDL_Window* window, float indentWidth, int& 
 	ImGui::SetCursorPosY(fileYPos); //Draw dummy drop zone between files
 	if (ImGui::BeginDragDropTarget()) {
 		if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("FILE_ITEM")) {
+			auto destIt = fileSrc.fileIter + 1; //Insert after the element for this point
 			FileSource* droppedFileSrc = (FileSource*)payload->Data; //File that was dropped in
 			GenericAssetFile* droppedFile = (*droppedFileSrc->fileIter).get();
 
@@ -168,30 +169,27 @@ void renderFile(FileSource fileSrc, SDL_Window* window, float indentWidth, int& 
 				AssetPack* droppedPackFile = static_cast<AssetPack*>(droppedFile);
 				canBeDropped = (&(droppedPackFile->subFiles) != fileSrc.fileVector) && !isDescendant(droppedPackFile, file); //The asset pack cannot be dropped into itself
 			}
-			if (canBeDropped) {
-				auto destIt = fileSrc.fileIter + 1; //Insert after the element for this point
-				if (*(fileSrc.fileIter) != *droppedFileSrc->fileIter) {
-					// Insert outside of vector
-					if (droppedFileSrc->fileVector != fileSrc.fileVector) {
-						fileSrc.fileVector->insert(destIt, std::move(*(droppedFileSrc->fileIter)));
-						droppedFileSrc->fileVector->erase(droppedFileSrc->fileIter);
-					// Insert within vector
-					} else {
-						if (destIt >= fileSrc.fileVector->end()) {
-							destIt = fileSrc.fileIter; //Don't insert out of bounds if the file is moved within the same vector
-						}
-						if (droppedFileSrc->fileIter < fileSrc.fileIter+1) {
-							std::rotate(droppedFileSrc->fileIter, droppedFileSrc->fileIter + 1, fileSrc.fileIter+1);
-						} else if (droppedFileSrc->fileIter > fileSrc.fileIter+1) {
-							std::rotate(destIt, droppedFileSrc->fileIter, droppedFileSrc->fileIter+1);
-						}
+			if (canBeDropped && *(fileSrc.fileIter) != *droppedFileSrc->fileIter) {
+				// Insert outside of vector
+				if (droppedFileSrc->fileVector != fileSrc.fileVector) {
+					fileSrc.fileVector->insert(destIt, std::move(*(droppedFileSrc->fileIter)));
+					droppedFileSrc->fileVector->erase(droppedFileSrc->fileIter);
+				// Insert within vector
+				} else {
+					if (destIt >= fileSrc.fileVector->end()) {
+						destIt = fileSrc.fileIter; //Don't insert out of bounds if the file is moved within the same vector
 					}
-					if (droppedFileSrc->parentFile != nullptr) {
-						droppedFileSrc->parentFile->refreshData(); //Refresh asset pack the dropped file was moved from if needed
+					if (droppedFileSrc->fileIter < fileSrc.fileIter+1) {
+						std::rotate(droppedFileSrc->fileIter, droppedFileSrc->fileIter + 1, fileSrc.fileIter+1);
+					} else if (droppedFileSrc->fileIter > fileSrc.fileIter+1) {
+						std::rotate(destIt, droppedFileSrc->fileIter, droppedFileSrc->fileIter+1);
 					}
-					if (packFile != nullptr) {
-						packFile->refreshData();
-					}
+				}
+				if (droppedFileSrc->parentFile != nullptr) {
+					droppedFileSrc->parentFile->refreshData(); //Refresh asset pack the dropped file was moved from if needed
+				}
+				if (packFile != nullptr) {
+					packFile->refreshData();
 				}
 			}
 		}

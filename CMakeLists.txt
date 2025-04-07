@@ -5,7 +5,7 @@ project (GameloftJ2METool)
 option(SDL_VENDORED "Use vendored SDL libraries" OFF) #Switch between a system sdl library and a vendored sdl library
 option(BUILD_DEBUG "Create debug build" ON)
 option(NATIVE_OPTIMIZE "Optimize for native CPU" OFF)
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 
 # Build settings
 if(BUILD_DEBUG)
@@ -62,7 +62,8 @@ add_subdirectory(src/GameloftGfx)
 add_executable (GameloftJ2METool src/Main.cpp)
 
 if(WIN32)
-    target_link_options(GameloftJ2METool PRIVATE "-mwindows") #Disable console pop-up
+	target_link_options(GameloftJ2METool PUBLIC "-mwindows") #Disable console pop-up
+	target_link_options(GameloftJ2METool PUBLIC -static	-static-libgcc -static-libstdc++) #Disable console pop-up
 endif(WIN32)
 
 # Indicate which libraries to include during the link process.
