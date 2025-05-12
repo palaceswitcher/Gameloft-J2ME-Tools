@@ -33,7 +33,6 @@ struct GameloftGraphics {
 	static std::vector<unsigned char> field_25;
 	static int field_27;// = -1;
 	static int field_28;// = -1;
-	std::vector<int> argbBitmapData = std::vector<int>(4096);
 	std::vector<unsigned char> spriteDims;
 	std::vector<unsigned char> field_7;
 	std::vector<std::int16_t> field_8;
@@ -45,13 +44,14 @@ struct GameloftGraphics {
 	std::vector<std::vector<int>> field_14;
 	std::vector<std::vector<int>> palettes;
 	int paletteCount;
-	int spritePalette;
 	bool isTransparent;
 	std::int16_t bitDepth;
-	std::vector<unsigned char> bitmapData;
-	std::vector<std::int16_t> bitmapInds;
+	std::vector<std::vector<unsigned char>> bitmapData;
 	std::vector<std::vector<J2MEImage>> sprites;
-	int field_26 = 0;
+
+	// Create graphics from known bitmap and palette data
+	void importSprite(std::vector<unsigned char> data, std::vector<int> paletteData, int width, int height);
+
 	void loadData(std::vector<unsigned char> data, int index = 0);
 
 	/**
@@ -62,7 +62,7 @@ struct GameloftGraphics {
 	 * @param copyPalette Palette to copy the sprites from, sprites are constructed from bitmap data if -1.
 	 */
 	void method_1(int palette, int start, int stop, int copyPalette);
-	std::vector<int> method_11(int var1);
+	std::vector<int> method_11(int sprite, int sprPalette);
 	J2MEImage getSprite(int palette, int spriteNum);
 };
 

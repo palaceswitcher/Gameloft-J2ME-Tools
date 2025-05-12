@@ -12,6 +12,12 @@ public:
 	GameloftGraphics gfx;
 	GfxAsset(std::vector<unsigned char> fData, std::string fName, std::string fPath = ""); //Load GFX file from path
 	void updateSpriteImages();
+
+	// Import sprite from PNG
+	void importPng(const char* filename);
+
+	// Export sprite
+	void exportSprite(int number, int palette);
 };
 
 #endif

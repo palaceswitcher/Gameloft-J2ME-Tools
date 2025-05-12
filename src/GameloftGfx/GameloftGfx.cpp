@@ -38,6 +38,24 @@ std::int32_t bytesToInt(std::vector<unsigned char>& bytes, int& index) {
 	return (bytes[index++]&0xFF) + ((bytes[index++]&0xFF) << 8) + ((bytes[index++]&0xFF) << 16) + ((bytes[index++]&0xFF) << 24);
 }
 
+void GameloftGraphics::importSprite(std::vector<unsigned char> data, std::vector<int> paletteData, int width, int height) {
+	// Copy to nearest free palette
+	if (paletteCount < 16) {
+		palettes[paletteCount] = paletteData;
+		paletteCount++;
+	} else {
+		std::cerr << "No available space for palette in graphics.";
+		return;
+	}
+	
+	//spriteDims[0] = width;
+	//spriteDims[1] = height;
+	//bitmapData[0] = std::vector<unsigned char>(data.begin(), data.end());
+	spriteDims.push_back(width);
+	spriteDims.push_back(height);
+	bitmapData.push_back(std::vector<unsigned char>(data.begin(), data.end()));
+}
+
 void GameloftGraphics::loadData(std::vector<unsigned char> data, int index) {
 	index = 6; //Starts after signature
 	int spriteDimCount = bytesToShort(data, index); //How many sprite sizes
@@ -149,20 +167,10 @@ void GameloftGraphics::loadData(std::vector<unsigned char> data, int index) {
 
 		bitDepth = bytesToShort(data, index);
 		if (spriteDimCount > 0) {
-			bitmapInds.reserve(spriteDimCount);
-			int bitmapDataIndex = index;
-			int bitmapIndex = 0;
-
-			for (int i = 0; i < spriteDimCount; i++) {
-				int bitmapSize = bytesToShort(data, bitmapDataIndex);
-				bitmapInds.push_back(bitmapIndex);
-				bitmapDataIndex += bitmapSize; //Move to next bitmap image
-				bitmapIndex += bitmapSize;
-			}
-
 			for (int i = 0; i < spriteDimCount; i++) {
 				int bitmapSize = bytesToShort(data, index);
-				std::copy(data.begin()+index, data.begin()+index+bitmapSize, back_inserter(bitmapData));
+				std::vector<unsigned char> vec(data.begin()+index, data.begin()+index+bitmapSize);
+				bitmapData.push_back(vec);
 				index += bitmapSize;
 			}
 		}
@@ -175,18 +183,29 @@ void GameloftGraphics::method_1(int palette, int start, int stop, int copyPalett
 			stop = (spriteDims.size() / 2) - 1; //Get all sprites up to the last
 		}
 
+		//sprites.clear();
 		if (sprites.empty()) {
 			for (int i = 0; i < paletteCount; i++) {
-				std::vector<J2MEImage> emptyVec;
-				sprites.push_back(emptyVec);
+				sprites.push_back({});
+			}
+		}
+		if (sprites.size() <= palette) {
+			for (int i = sprites.size()-1; i < palette; i++) {
+				sprites.push_back({});
 			}
 		}
 
-		if (sprites[palette].empty()) {
+		sprites[palette].clear();
+		/*if (sprites[palette].empty()) {
 			for (int i = 0; i < (spriteDims.size() / 2); i++) {
 				sprites[palette].push_back(J2MEImage());
 			}
-		}
+		}*/
+		/*if (sprites[palette].size() <= stop+1) {
+			for (int i = 0; i <= stop; i++) {
+				sprites[palette].push_back(J2MEImage());
+			}
+		}*/
 
 		if (copyPalette >= 0) {
 			// Copy from one palette to another
@@ -194,15 +213,12 @@ void GameloftGraphics::method_1(int palette, int start, int stop, int copyPalett
 				sprites[palette][i] = sprites[copyPalette][i];
 			}
 		} else {
-			int var14 = spritePalette;
-			spritePalette = palette;
-
 			for (int i = start; i <= stop; i++) {
 				int var7 = i * 2;
 				int spriteWidth = spriteDims[var7] & 0xFF; //Get width
 				int spriteHeight = spriteDims[var7 + 1] & 0xFF; //Get height
 				std::vector<int> argbData;
-				if (spriteWidth > 0 && spriteHeight > 0 && !((argbData = method_11(i)).empty())) {
+				if (spriteWidth > 0 && spriteHeight > 0 && !((argbData = method_11(i, palette)).empty())) {
 					bool sprIsTransparent = false;
 					int spritePixelCount = spriteWidth * spriteHeight;
 
@@ -213,70 +229,68 @@ void GameloftGraphics::method_1(int palette, int start, int stop, int copyPalett
 						}
 					}
 
-					sprites[palette][i] = J2MEImage(argbData, spriteWidth, spriteHeight, sprIsTransparent);
+					sprites[palette].push_back(J2MEImage(argbData, spriteWidth, spriteHeight, sprIsTransparent));
 				}
 			}
-
-			spritePalette = var14;
 		}
 	}
 }
 
-std::vector<int> GameloftGraphics::method_11(int var1) {
-	if (!bitmapData.empty() && !bitmapInds.empty()) {
-		int var2 = var1 * 2;
+std::vector<int> GameloftGraphics::method_11(int sprite, int sprPalette) {
+	if (!bitmapData[sprite].empty()) {
+		int var2 = sprite * 2;
 		int spriteWidth = spriteDims[var2] & 0xFF;
 		int spriteHeight = spriteDims[var2 + 1] & 0xFF;
 		std::vector<int> palette;
-		if (spritePalette >= palettes.size() || (palette = palettes[spritePalette]).empty()) {
+		if (sprPalette >= palettes.size() || (palette = palettes[sprPalette]).empty()) {
 			return {};
 		} else {
-			//std::vector<int> var5 = argbBitmapData; //TODO TEST PERF OF THIS
-			int var8 = bitmapInds[var1] & 0xFFFF;
+			int index = 0;
 			int argbBitmapInd = 0;
 			int spritePixelCount = spriteWidth * spriteHeight; //Total amount of pixels
+			std::vector<int> argbBitmapData(spritePixelCount);
 			if (bitDepth != 0x27F1) {
 				if (bitDepth == BIT_DEPTH_4) {
 					while (argbBitmapInd < spritePixelCount) {
-						argbBitmapData[argbBitmapInd++] = palette[bitmapData[var8] >> 4 & 0xF];
-						argbBitmapData[argbBitmapInd++] = palette[bitmapData[var8] & 0xF];
-						var8++;
+						argbBitmapData[argbBitmapInd++] = palette[bitmapData[sprite][index] >> 4 & 0xF];
+						argbBitmapData[argbBitmapInd++] = palette[bitmapData[sprite][index] & 0xF];
+						index++;
 					}
 				} else if (bitDepth == BIT_DEPTH_2) {
 					while (argbBitmapInd < spritePixelCount) {
-						argbBitmapData[argbBitmapInd++] = palette[bitmapData[var8] >> 6 & 3];
-						argbBitmapData[argbBitmapInd++] = palette[bitmapData[var8] >> 4 & 3];
-						argbBitmapData[argbBitmapInd++] = palette[bitmapData[var8] >> 2 & 3];
-						argbBitmapData[argbBitmapInd++] = palette[bitmapData[var8] & 3];
-						var8++;
+						argbBitmapData[argbBitmapInd++] = palette[bitmapData[sprite][index] >> 6 & 3];
+						argbBitmapData[argbBitmapInd++] = palette[bitmapData[sprite][index] >> 4 & 3];
+						argbBitmapData[argbBitmapInd++] = palette[bitmapData[sprite][index] >> 2 & 3];
+						argbBitmapData[argbBitmapInd++] = palette[bitmapData[sprite][index] & 3];
+						index++;
 					}
 				} else if (bitDepth == BIT_DEPTH_1) {
 					while (argbBitmapInd < spritePixelCount) {
-						argbBitmapData[argbBitmapInd++] = palette[bitmapData[var8] >> 7 & 1];
-						argbBitmapData[argbBitmapInd++] = palette[bitmapData[var8] >> 6 & 1];
-						argbBitmapData[argbBitmapInd++] = palette[bitmapData[var8] >> 5 & 1];
-						argbBitmapData[argbBitmapInd++] = palette[bitmapData[var8] >> 4 & 1];
-						argbBitmapData[argbBitmapInd++] = palette[bitmapData[var8] >> 3 & 1];
-						argbBitmapData[argbBitmapInd++] = palette[bitmapData[var8] >> 2 & 1];
-						argbBitmapData[argbBitmapInd++] = palette[bitmapData[var8] >> 1 & 1];
-						argbBitmapData[argbBitmapInd++] = palette[bitmapData[var8] & 1];
-						var8++;
+						argbBitmapData[argbBitmapInd++] = palette[bitmapData[sprite][index] >> 7 & 1];
+						argbBitmapData[argbBitmapInd++] = palette[bitmapData[sprite][index] >> 6 & 1];
+						argbBitmapData[argbBitmapInd++] = palette[bitmapData[sprite][index] >> 5 & 1];
+						argbBitmapData[argbBitmapInd++] = palette[bitmapData[sprite][index] >> 4 & 1];
+						argbBitmapData[argbBitmapInd++] = palette[bitmapData[sprite][index] >> 3 & 1];
+						argbBitmapData[argbBitmapInd++] = palette[bitmapData[sprite][index] >> 2 & 1];
+						argbBitmapData[argbBitmapInd++] = palette[bitmapData[sprite][index] >> 1 & 1];
+						argbBitmapData[argbBitmapInd++] = palette[bitmapData[sprite][index] & 1];
+						index++;
 					}
 				} else if (bitDepth == BIT_DEPTH_8) {
 					while (argbBitmapInd < spritePixelCount) {
-						argbBitmapData[argbBitmapInd++] = palette[bitmapData[var8++] & 0xFF];
+						argbBitmapData[argbBitmapInd++] = palette[bitmapData[sprite][index++] & 0xFF];
 					}
 				} else if (bitDepth == 0x56F2) {
 					while (argbBitmapInd < spritePixelCount) {
-						int var26 = bitmapData[var8++] & 0xFF;
+						int var26 = bitmapData[sprite][index++] & 0xFF;
 						// If not RLE tag
 						if (var26 > 127) {
 							for (int i = var26 - 0x80;
 							i-- > 0;
-							argbBitmapData[argbBitmapInd++] = palette[bitmapData[var8++] & 0xFF]) {}
+							argbBitmapData[argbBitmapInd++] = palette[bitmapData[sprite][index++] & 0xFF]) {}
 						// If RLE tag
 						} else {
-							for (int i = palette[bitmapData[var8++] & 0xFF];
+							for (int i = palette[bitmapData[sprite][index++] & 0xFF];
 							var26-- > 0;
 							argbBitmapData[argbBitmapInd++] = i) {}
 						}
@@ -284,10 +298,10 @@ std::vector<int> GameloftGraphics::method_11(int var1) {
 				}
 			} else {
 				while (argbBitmapInd < spritePixelCount) {
-					int var11 = bitmapData[var8++] & 0xFF;
+					int var11 = bitmapData[sprite][index++] & 0xFF;
 					// If RLE tag
 					if (var11 > 127) {
-						int var12 = bitmapData[var8++] & 0xFF;
+						int var12 = bitmapData[sprite][index++] & 0xFF;
 						int var13 = palette[var12];
 
 						for(int var25 = var11 - 0x80;
@@ -321,7 +335,7 @@ J2MEImage GameloftGraphics::getSprite(int palette, int spriteNum) {
 		/*!sprites.empty() &&*/ !sprites[spritePalette].empty()) {
 		image = sprites[spritePalette][spriteNum];
 	} else {
-		std::vector<int> rawImgData = method_11(spriteNum);
+		std::vector<int> rawImgData = method_11(spriteNum, palette);
 		if (rawImgData.empty()) {
 			spriteBoxWidth = 0;
 			spriteBoxHeight = 0;

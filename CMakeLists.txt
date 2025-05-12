@@ -1,5 +1,6 @@
 cmake_minimum_required (VERSION 3.28)
 project (GameloftJ2METool)
+include(FetchContent)
 
 # Build options
 option(SDL_VENDORED "Use vendored SDL libraries" OFF) #Switch between a system sdl library and a vendored sdl library
@@ -9,46 +10,49 @@ set(CMAKE_CXX_STANDARD 17)
 
 # Build settings
 if(BUILD_DEBUG)
-    set(CMAKE_BUILD_TYPE Debug)
-    set(CMAKE_DEBUG_POSTFIX d)
+	set(CMAKE_BUILD_TYPE Debug)
+	set(CMAKE_DEBUG_POSTFIX d)
 else()
-    set(CMAKE_BUILD_TYPE Release)
-    set(CMAKE_CXX_FLAGS_RELEASE "-O2")
+	set(CMAKE_BUILD_TYPE Release)
+	set(CMAKE_CXX_FLAGS_RELEASE "-O2")
 endif()
 if(NATIVE_OPTIMIZE)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
 endif()
 
 set(CMAKE_CXX_FLAGD "${CMAKE_CXX_FLAGS} -Wall -Werror -Wextra -Wpedantic")
 
 if(SDL_VENDORED)
-    add_subdirectory(vendored/SDL EXCLUDE_FROM_ALL)
+	add_subdirectory(vendored/SDL EXCLUDE_FROM_ALL)
 else()
-    # 1. Look for a SDL3 package, 2. look for the SDL3 component and 3. fail if none can be found
-    find_package(SDL3 REQUIRED CONFIG REQUIRED COMPONENTS SDL3-shared)
+	# 1. Look for a SDL3 package, 2. look for the SDL3 component and 3. fail if none can be found
+	find_package(SDL3 REQUIRED CONFIG REQUIRED COMPONENTS SDL3-shared)
 endif()
 
 # Find dependencies
-#find_package(SDL3_image REQUIRED)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(LIQ REQUIRED imagequant)
+include_directories((${LIQ_INCLUDE_DIRS}))
 find_package(SDL3 REQUIRED)
 include_directories(${SDL3_INCLUDE_DIRS})
 
 add_library(ImGui
-    include/imgui/imgui.cpp
-    include/imgui/imgui_demo.cpp
-    include/imgui/imgui_draw.cpp
-    include/imgui/imgui_tables.cpp
-    include/imgui/imgui_widgets.cpp
-    include/imgui/misc/cpp/imgui_stdlib.cpp
-    include/imgui/backends/imgui_impl_sdl3.cpp
-    include/imgui/backends/imgui_impl_sdlrenderer3.cpp
-    include/imgui/backends/imgui_impl_opengl2.cpp
+	include/imgui/imgui.cpp
+	include/imgui/imgui_demo.cpp
+	include/imgui/imgui_draw.cpp
+	include/imgui/imgui_tables.cpp
+	include/imgui/imgui_widgets.cpp
+	include/imgui/misc/cpp/imgui_stdlib.cpp
+	include/imgui/backends/imgui_impl_sdl3.cpp
+	include/imgui/backends/imgui_impl_sdlrenderer3.cpp
+	include/imgui/backends/imgui_impl_opengl2.cpp
 )
 
 target_link_libraries(ImGui SDL3::SDL3)
 
 # Include source directories and add executable
 include_directories(include)
+include_directories(include/stb)
 include_directories(include/imgui)
 include_directories(include/imgui/misc/cpp)
 include_directories(include/imgui/backends)
@@ -66,8 +70,9 @@ if(WIN32)
 	target_link_options(GameloftJ2METool PUBLIC -static	-static-libgcc -static-libstdc++) #Disable console pop-up
 endif(WIN32)
 
-# Indicate which libraries to include during the link process.
-target_link_libraries(GameloftJ2METool SDL3::SDL3)
+# Indicate which libraries to include during the link processZLIB
+target_link_libraries(GameloftJ2METool imagequant)
+target_link_libraries(GameloftJ2METool SDL3)
 target_link_libraries(GameloftJ2METool ImGui)
 target_link_libraries(GameloftJ2METool Core)
 target_link_libraries(GameloftJ2METool UI)
