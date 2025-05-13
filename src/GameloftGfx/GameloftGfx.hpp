@@ -27,20 +27,48 @@ public:
 	J2MEImage();
 };
 
+namespace ASprite {
+struct Module {
+	std::int8_t w;
+	std::int8_t h;
+};
+struct FrameModule {
+	std::int8_t modIndex;
+	std::int8_t x;
+	std::int8_t y;
+	std::int8_t flags; // Transformation Flags (Bit 0: Vertical mirror, Bit 1: Horizontal mirror)
+};
+struct Frame {
+	std::int16_t numModules; // Amount of frame modules
+	std::int16_t frameModuleIndex; // Index of the first frame module
+};
+struct FrameRect {
+	std::int8_t x;
+	std::int8_t y;
+	std::int8_t w;
+	std::int8_t h;
+};
+struct AnimationFrame{
+	std::int8_t index; // Frame index
+	std::int8_t duration; // Amount of time the frame is shown
+	std::int8_t xOffs; // Horizontal offset
+	std::int8_t yOffs; // Vertical offset
+	std::int8_t flags; // Transformation flags?
+};
+struct Animation {
+	std::int16_t frameCount; // Amount of animation frames
+	std::int16_t frameIndex; // Index of the first animation frame
+};
+}
+
 struct GameloftGraphics {
-	static int field_23;
-	static int field_24;
-	static std::vector<unsigned char> field_25;
-	static int field_27;// = -1;
-	static int field_28;// = -1;
-	std::vector<unsigned char> spriteDims;
-	std::vector<unsigned char> field_7;
-	std::vector<std::int16_t> field_8;
-	std::vector<unsigned char> field_9;
-	std::vector<unsigned char> spriteDefs;
-	std::vector<unsigned char> field_11;
-	std::vector<std::int16_t> field_12;
-	std::vector<unsigned char> field_13;
+	int spriteVersion;
+	std::vector<ASprite::Module> modules;
+	std::vector<ASprite::FrameModule> frameModules;
+	std::vector<ASprite::Frame> frames;
+	std::vector<ASprite::FrameRect> frameRects;
+	std::vector<ASprite::Animation> animations;
+	std::vector<ASprite::AnimationFrame> animationFrames;
 	std::vector<std::vector<int>> field_14;
 	std::vector<std::vector<int>> palettes;
 	int paletteCount;
@@ -50,7 +78,7 @@ struct GameloftGraphics {
 	std::vector<std::vector<J2MEImage>> sprites;
 
 	// Create graphics from known bitmap and palette data
-	void importSprite(std::vector<unsigned char> data, std::vector<int> paletteData, int width, int height);
+	void importSprite(std::vector<unsigned char> data, std::vector<int> paletteData, std::int8_t width, std::int8_t height);
 
 	void loadData(std::vector<unsigned char> data, int index = 0);
 
@@ -61,7 +89,7 @@ struct GameloftGraphics {
 	 * @param stop Last image number, last image if -1
 	 * @param copyPalette Palette to copy the sprites from, sprites are constructed from bitmap data if -1.
 	 */
-	void method_1(int palette, int start, int stop, int copyPalette);
+	void cacheSpriteImages(int palette, int start, int stop, int copyPalette);
 	std::vector<int> method_11(int sprite, int sprPalette);
 	J2MEImage getSprite(int palette, int spriteNum);
 };
