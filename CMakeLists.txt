@@ -6,7 +6,7 @@ include(FetchContent)
 option(SDL_VENDORED "Use vendored SDL libraries" OFF) #Switch between a system sdl library and a vendored sdl library
 option(BUILD_DEBUG "Create debug build" ON)
 option(NATIVE_OPTIMIZE "Optimize for native CPU" OFF)
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 
 # Build settings
 if(BUILD_DEBUG)

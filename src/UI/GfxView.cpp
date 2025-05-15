@@ -5,6 +5,7 @@
 #include "GfxAsset.hpp"
 #include "GameloftGfx.hpp"
 #include <vector>
+#include <chrono>
 #include <algorithm>
 #include <string>
 #include <cmath>
@@ -12,11 +13,19 @@
 
 #include <fstream>
 
+auto getCurTimeMs() {
+	auto now = std::chrono::system_clock::now();
+	return std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+}
+
 struct OpenedGfxAsset {
-	int selectedSpriteIndex; //Index of the selected sprit
-	int selPalette = 0;	//Selected palette
+	int selectedSpriteIndex; // Index of the selected sprit
+	int selPalette = 0;	// Selected palette
 	GfxAsset* gfxFile;
-	std::vector<std::vector<SDL_Texture*>> textureBuf; //Sprite texture buffere
+	std::int64_t lastFrameTime = 0; // Unix time of last frame in milliseconds, used to render animations
+	int currentAnimFrame = 0; // Animation frame currently being drawn
+	std::vector<std::vector<SDL_Texture*>> textureBuf; // Sprite texture buffer
+	int selAnim = 0;
 };
 
 OpenedGfxAsset *removedFile;
@@ -54,6 +63,7 @@ void UI::GfxView::add(GfxAsset* file, SDL_Renderer* ren) {
 	});
 	if (it == openedGfxFiles.end()) {
 		OpenedGfxAsset openedGfxAsset = {0, 0, file};
+		openedGfxAsset.lastFrameTime = getCurTimeMs();
 		refreshTextureBuf(openedGfxAsset.textureBuf, file, ren);
 		openedGfxFiles.push_back(openedGfxAsset);
 	} else {
@@ -70,9 +80,9 @@ void UI::GfxView::remove(GfxAsset* file) {
 }
 
 void renderGfxWindow(SDL_Window* window, bool& opened) {
-	bool waitingFileRemove = false;	//Whether or not a file is queued for removal
-	bool curFileOpen = true; //File is assumed to be kept open until closure
-	SDL_Renderer* ren = SDL_GetRenderer(window); //Get renderer from window
+	bool waitingFileRemove = false;	// Whether or not a file is queued for removal
+	bool curFileOpen = true; // File is assumed to be kept open until closure
+	SDL_Renderer* ren = SDL_GetRenderer(window); // Get renderer from window
 
 	float textureBoxSize = 32.0f;
 	int maxImgGridCols = 16;
@@ -83,112 +93,90 @@ void renderGfxWindow(SDL_Window* window, bool& opened) {
 			int i = 0;
 			for (auto& file : openedGfxFiles) {
 				GfxAsset* gfxFile = file.gfxFile;
+				GameloftGraphics glGfx = gfxFile->gfx; // ASprite graphics for the current file
 
 				ImGui::PushID(i);
 				bool tabOpened = ImGui::BeginTabItem(gfxFile->name.c_str(), &curFileOpen, 0);
 				ImGui::PopID();
 				if (tabOpened) {
-					int spriteCount = gfxFile->gfx.sprites[file.selPalette].size(); //Number of sprites for the currently viewed file
-					// Palette change
-					if (ImGui::InputInt("Palette", &file.selPalette)) {
-						if (file.selPalette >= file.textureBuf.size()) {
-							file.selPalette = file.textureBuf.size() - 1;
-						}
-					}
-					// Palette show
-					if (ImGui::TreeNode("Palettes")) {
-						int n = 0;
-						for (int p = 0; p < file.gfxFile->gfx.palettes.size(); p++) {
-							auto palette = file.gfxFile->gfx.palettes[p];
-							if (!palette.empty()) {
-								ImGui::Text("#%d", p);
-								ImGui::SameLine();
-								for (int c = 0; c < palette.size(); c++) {
-									int color = palette[c];
-									float a = ((color >> 24) & 0xFF) / 255.0f;
-									float r = ((color >> 16) & 0xFF) / 255.0f;
-									float g = ((color >> 8) & 0xFF) / 255.0f;
-									float b = (color & 0xFF) / 255.0f; //Convert ARGB color to floats
-									std::vector<float> colVec = {r, g, b, a};
-									if (c != 0) {
-										ImGui::SameLine();
-									}
-									ImGui::PushID(n);
-									if (ImGui::ColorButton("##", ImVec4(r, g, b, a))) {
-										ImGui::OpenPopup("ColorPickerPopup");
-									}
-									if (ImGui::BeginPopup("ColorPickerPopup")) {
-										if (ImGui::ColorPicker4("Edit Color", &colVec[0])) {
-											int newCol = (int)(255.0f * colVec[3]) << 24 |
-														 (int)(255.0f * colVec[0]) << 16 |
-														 (int)(255.0f * colVec[1]) << 8 |
-														 (int)(255.0f * colVec[2]); //Convert floats back to ARGB
-											file.gfxFile->gfx.palettes[p][c] = newCol;
-											refreshTextureBuf(file.textureBuf, file.gfxFile, ren);
-										}
-										ImGui::EndPopup();
+					if (ImGui::BeginTabBar("GfxViewTabBar")) {
+						// Animations tab
+						if (ImGui::BeginTabItem("Animations")) {
+							std::vector<std::string> animStrings;
+							for (int j = 0; j < glGfx.animations.size(); j++) {
+								animStrings.push_back("#"+std::to_string(j));
+							}
+							// Render animation combo
+							char* previewString;
+							if (file.selAnim >= animStrings.size()) {
+								previewString = NULL;
+							} else {
+								previewString = (char*)animStrings[file.selAnim].c_str();
+							}
+							if (ImGui::BeginCombo("Animation", previewString)) {
+								for (int j = 0; j < animStrings.size(); j++) {
+									ImGui::PushID(j);
+									if (ImGui::Selectable(animStrings[j].c_str())) {
+										file.selAnim = j;
 									}
 									ImGui::PopID();
-									n++;
 								}
+								ImGui::EndCombo();
+							}
+							ImGui::EndTabItem();
+						}
+						
+
+						std::vector<ASprite::FrameModule> frameModules;
+						if (file.selAnim < glGfx.animations.size()) {
+							int ind = glGfx.animations[file.selAnim].frameIndex;
+							int frameInd = glGfx.animationFrames[ind+file.currentAnimFrame].index; // Current frame number
+							ASprite::AnimationFrame animFrame = glGfx.animationFrames[ind+file.currentAnimFrame]; // Current animation frame
+							ASprite::Frame frame = glGfx.frames[frameInd]; // Current frame
+							ASprite::FrameRect frameRect = glGfx.frameRects[frameInd]; // Current frame's rectangle
+
+							if (getCurTimeMs() - file.lastFrameTime > animFrame.duration * 50) {
+								file.currentAnimFrame++; // Go to next frame
+								if (file.currentAnimFrame >= glGfx.animations[file.selAnim].frameCount) {
+									file.currentAnimFrame = 0; // Loop when last frame is reached
+								}
+								file.lastFrameTime = getCurTimeMs();
+							}
+
+							frameModules = std::vector<ASprite::FrameModule>(glGfx.frameModules.begin()+frame.frameModuleIndex, glGfx.frameModules.begin()+frame.frameModuleIndex+frame.numModules);
+							
+							ImGui::Selectable("##DisplayedAnim", true, 0, ImVec2(frameRect.w, frameRect.h)); // Animation bounding box (TODO: FIX HOW THIS IS SCALED)
+
+							float xOffs = animFrame.xOffs;
+							float yOffs = animFrame.yOffs;
+							for (auto &frameMod : frameModules) {
+								ASprite::Module module = glGfx.modules[frameMod.modIndex];
+								float width = module.w;
+								float height = module.h;
+
+								SDL_Texture* texture = file.textureBuf[file.selPalette][frameMod.modIndex];
+								ImVec2 drawPos = ImGui::GetItemRectMin();
+								// Apply mirroring
+								ImVec2 uvMin = ImVec2(0.0f, 0.0f);
+								ImVec2 uvMax = ImVec2(1.0f, 1.0f);
+								if ((frameMod.flags & 0b01) != 0) {
+									uvMin.x = 1.0f;
+									uvMax.x = 0.0f;
+								}
+								if ((frameMod.flags & 0b10) != 0) {
+									uvMin.y = 1.0f;
+									uvMax.y = 0.0f;
+								}
+								ImDrawList *drawList = ImGui::GetWindowDrawList();
+								drawList->AddImage((ImTextureID)(intptr_t)texture,
+								ImVec2(xOffs + drawPos.x + frameMod.x, yOffs + drawPos.y + frameMod.y),
+								ImVec2(xOffs + drawPos.x + frameMod.x + width, yOffs + drawPos.y + frameMod.y + height), uvMin, uvMax);
 							}
 						}
-						ImGui::TreePop();
-					}
-					int colCount = floorf(ImGui::GetWindowWidth() / (textureBoxSize + ImGui::GetStyle().WindowPadding.x)); // Number of columns
-					if (colCount <= 0) {
-						colCount = 1;
-					}
-					for (int sp = 0; sp < spriteCount; sp++) {
-						if (sp % colCount != 0) {
-							ImGui::SameLine();
-						}
 
-						SDL_Texture* texture = file.textureBuf[file.selPalette][sp];
-						SDL_SetTextureScaleMode(texture, SDL_SCALEMODE_LINEAR);
-						ImGui::PushID(sp);
-						if (ImGui::Selectable("##", true, 0, ImVec2(textureBoxSize, textureBoxSize))) {
-							file.selectedSpriteIndex = sp;
-						}
-						if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
-							ImGui::OpenPopup("SpriteViewPopup");
-						}
-						if (ImGui::BeginPopup("SpriteViewPopup")) {
-							if (ImGui::MenuItem("Save as PNG")) {
-								file.gfxFile->exportSprite(sp, file.selPalette);
-							}
-							ImGui::EndPopup();
-						}
-
-						ImGui::PopID();
-
-						float spriteDrawWidth = texture->w;
-						float spriteDrawHeight = texture->h;
-						ImVec2 max = ImGui::GetItemRectMax();
-						ImVec2 min = ImGui::GetItemRectMin();
-						float boxWidth = max.x - min.x;
-						float boxHeight = max.y - min.y;
-	
-						if (spriteDrawWidth > boxWidth) {
-							spriteDrawHeight *= boxWidth / spriteDrawWidth;
-							spriteDrawWidth = boxWidth;
-						}
-						if (spriteDrawHeight > boxHeight) {
-							spriteDrawWidth *= boxHeight / spriteDrawHeight;
-							spriteDrawHeight = boxHeight;
-						}
-
-						ImVec2 center = ImVec2(ceilf(min.x + ((boxWidth - spriteDrawWidth) * 0.5f)), min.y + ceilf(((boxHeight - spriteDrawHeight) * 0.5f)));
-						ImDrawList *drawList = ImGui::GetWindowDrawList();
-						drawList->AddImage((ImTextureID)(intptr_t)texture, center, ImVec2(spriteDrawWidth + center.x, spriteDrawHeight + center.y));
+						ImGui::EndTabBar();
 					}
 					ImGui::EndTabItem();
-
-					SDL_Texture* selectedSpriteTexture = file.textureBuf[file.selPalette][file.selectedSpriteIndex];
-					SDL_SetTextureScaleMode(selectedSpriteTexture, SDL_SCALEMODE_NEAREST);
-					ImGui::Image((ImTextureID)(intptr_t)selectedSpriteTexture, ImVec2(
-								selectedSpriteTexture->w*2,
-								selectedSpriteTexture->h*2));
 				}
 				if (!curFileOpen) {
 					removedFile = &file;

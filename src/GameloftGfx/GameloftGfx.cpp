@@ -78,7 +78,7 @@ void GameloftGraphics::loadData(std::vector<unsigned char> data, int index) {
 	if (numFrameModules != 0) {
 		int endIndex = index + numFrameModules * 4; // End index of frame module data
 		while (index < endIndex) {
-			std::int8_t mInd = data[index++];
+			std::uint8_t mInd = data[index++];
 			std::int8_t x = data[index++];
 			std::int8_t y = data[index++];
 			std::int8_t flags = data[index++];
@@ -109,7 +109,7 @@ void GameloftGraphics::loadData(std::vector<unsigned char> data, int index) {
 	if (numAnimFrames != 0) {
 		int endIndex = index + numAnimFrames * 5; // End index of animation frame data
 		while (index < endIndex) {
-			std::int8_t ind = data[index++];
+			std::uint8_t ind = data[index++];
 			std::int8_t dispTime = data[index++];
 			std::int8_t xOffs = data[index++];
 			std::int8_t yOffs = data[index++];
