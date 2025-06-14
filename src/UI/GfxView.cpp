@@ -147,30 +147,55 @@ void renderGfxWindow(SDL_Window* window, bool& opened) {
 							
 							ImGui::Selectable("##DisplayedAnim", true, 0, ImVec2(frameRect.w, frameRect.h)); // Animation bounding box (TODO: FIX HOW THIS IS SCALED)
 
-							float xOffs = animFrame.xOffs;
-							float yOffs = animFrame.yOffs;
+							int frameRectX = frameRect.x;
+							int frameRectY = frameRect.y;
+
+							// Render each frame module for the current frame
 							for (auto &frameMod : frameModules) {
 								ASprite::Module module = glGfx.modules[frameMod.modIndex];
-								float width = module.w;
-								float height = module.h;
+								int xOffs = animFrame.xOffs;
+								int yOffs = animFrame.yOffs;
+								int width = module.w;
+								int height = module.h;
+								int xPos = 0;
+								int yPos = 0;
 
 								SDL_Texture* texture = file.textureBuf[file.selPalette][frameMod.modIndex];
 								ImVec2 drawPos = ImGui::GetItemRectMin();
+
 								// Apply mirroring
 								ImVec2 uvMin = ImVec2(0.0f, 0.0f);
 								ImVec2 uvMax = ImVec2(1.0f, 1.0f);
-								if ((frameMod.flags & 0b01) != 0) {
+								if (((frameMod.flags & 0b01) != 0) != ((animFrame.flags & 0b01) != 0)) {
 									uvMin.x = 1.0f;
 									uvMax.x = 0.0f;
 								}
-								if ((frameMod.flags & 0b10) != 0) {
+								if ((animFrame.flags & 0b01) != 0) {
+									xPos -= frameMod.x;
+									xPos -= width;
+									xPos += xOffs;
+								} else {
+									xPos += frameMod.x;
+									xPos -= xOffs;
+								}
+
+								if (((frameMod.flags & 0b10) != 0) != ((animFrame.flags & 0b10) != 0)) {
 									uvMin.y = 1.0f;
 									uvMax.y = 0.0f;
 								}
-								ImDrawList *drawList = ImGui::GetWindowDrawList();
+								if ((animFrame.flags & 0b10) != 0) {
+									yPos -= frameMod.y;
+									yPos -= height;
+									yPos += yOffs;
+								} else {
+									yPos += frameMod.y;
+									yPos -= yOffs;
+								}
+
+								ImDrawList* drawList = ImGui::GetWindowDrawList();
 								drawList->AddImage((ImTextureID)(intptr_t)texture,
-								ImVec2(xOffs + drawPos.x + frameMod.x, yOffs + drawPos.y + frameMod.y),
-								ImVec2(xOffs + drawPos.x + frameMod.x + width, yOffs + drawPos.y + frameMod.y + height), uvMin, uvMax);
+								ImVec2(drawPos.x + xPos, drawPos.y + yPos),
+								ImVec2(drawPos.x + xPos + width, drawPos.y + yPos + height), uvMin, uvMax);
 							}
 						}
 

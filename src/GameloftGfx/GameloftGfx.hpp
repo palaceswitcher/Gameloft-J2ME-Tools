@@ -29,35 +29,35 @@ public:
 
 namespace ASprite {
 struct Module {
-	std::int8_t w;
-	std::int8_t h;
+	std::uint8_t w;
+	std::uint8_t h;
 };
 struct FrameModule {
 	std::uint8_t modIndex;
 	std::int8_t x;
 	std::int8_t y;
-	std::int8_t flags; // Transformation Flags (Bit 0: Vertical mirror, Bit 1: Horizontal mirror)
+	std::uint8_t flags; // Transformation Flags (Bit 0: Vertical mirror, Bit 1: Horizontal mirror)
 };
 struct Frame {
-	std::int16_t numModules; // Amount of frame modules
-	std::int16_t frameModuleIndex; // Index of the first frame module
+	std::uint16_t numModules; // Amount of frame modules
+	std::uint16_t frameModuleIndex; // Index of the first frame module
 };
 struct FrameRect {
-	std::int8_t x;
-	std::int8_t y;
-	std::int8_t w;
-	std::int8_t h;
+	std::uint8_t x;
+	std::uint8_t y;
+	std::uint8_t w;
+	std::uint8_t h;
 };
 struct AnimationFrame {
 	std::uint8_t index; // Frame index
-	std::int8_t duration; // Amount of time the frame is shown
+	std::uint8_t duration; // Amount of time the frame is shown
 	std::int8_t xOffs; // Horizontal offset
 	std::int8_t yOffs; // Vertical offset
-	std::int8_t flags; // Transformation flags?
+	std::uint8_t flags; // Transformation flags?
 };
 struct Animation {
-	std::int16_t frameCount; // Amount of animation frames
-	std::int16_t frameIndex; // Index of the first animation frame
+	std::uint16_t frameCount; // Amount of animation frames
+	std::uint16_t frameIndex; // Index of the first animation frame
 };
 }
 
@@ -78,7 +78,7 @@ struct GameloftGraphics {
 	std::vector<std::vector<J2MEImage>> sprites;
 
 	// Create graphics from known bitmap and palette data
-	void importSprite(std::vector<unsigned char> data, std::vector<int> paletteData, std::int8_t width, std::int8_t height);
+	void importSprite(std::vector<unsigned char> data, std::vector<int> paletteData, std::uint8_t width, std::uint8_t height);
 
 	void loadData(std::vector<unsigned char> data, int index = 0);
 

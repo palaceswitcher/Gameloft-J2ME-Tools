@@ -24,7 +24,7 @@ J2MEImage::J2MEImage(std::vector<int> rgb, int pWidth, int pHeight, bool pProces
  * @param index The index of the variable, passed by reference
  * @returns The 16-bit little-endian integer at the specified index
  */
-std::int16_t bytesToShort(std::vector<unsigned char>& bytes, int& index) {
+std::uint16_t bytesToUInt16(std::vector<unsigned char>& bytes, int& index) {
 	return (bytes[index++]&0xFF) + ((bytes[index++]&0xFF) << 8);
 }
 
@@ -38,7 +38,7 @@ std::int32_t bytesToInt(std::vector<unsigned char>& bytes, int& index) {
 	return (bytes[index++]&0xFF) + ((bytes[index++]&0xFF) << 8) + ((bytes[index++]&0xFF) << 16) + ((bytes[index++]&0xFF) << 24);
 }
 
-void GameloftGraphics::importSprite(std::vector<unsigned char> data, std::vector<int> paletteData, std::int8_t width, std::int8_t height) {
+void GameloftGraphics::importSprite(std::vector<unsigned char> data, std::vector<int> paletteData, std::uint8_t width, std::uint8_t height) {
 	// Copy to nearest free palette
 	if (paletteCount < 16) {
 		palettes[paletteCount] = paletteData;
@@ -63,71 +63,56 @@ void GameloftGraphics::loadData(std::vector<unsigned char> data, int index) {
 	index += 4; // Skip flags for now
 
 	// Load modules
-	int numModules = bytesToShort(data, index); // How many sprite modules
+	int numModules = bytesToUInt16(data, index); // How many sprite modules
 	if (numModules != 0) {
 		int endIndex = index + numModules * 2; // End index of module data
 		while (index < endIndex) {
-			std::int8_t x = data[index++];
-			std::int8_t y = data[index++];
-			modules.push_back({x, y});
+			modules.push_back({data[index++], data[index++]});
 		}
 	}
 
 	// Load frame modules
-	int numFrameModules = bytesToShort(data, index);
+	int numFrameModules = bytesToUInt16(data, index);
 	if (numFrameModules != 0) {
 		int endIndex = index + numFrameModules * 4; // End index of frame module data
 		while (index < endIndex) {
-			std::uint8_t mInd = data[index++];
-			std::int8_t x = data[index++];
-			std::int8_t y = data[index++];
-			std::int8_t flags = data[index++];
-			frameModules.push_back({mInd, x, y, flags});
+			frameModules.push_back({data[index++], (std::int8_t)data[index++], (std::int8_t)data[index++], data[index++]});
 		}
 	}
 
 	// Load frames
-	int numFrames = bytesToShort(data, index);
+	int numFrames = bytesToUInt16(data, index);
 	if (numFrames != 0) {
 		// Load frames
 		for (int i = 0; i < numFrames; i++) {
-			frames.push_back({bytesToShort(data, index), bytesToShort(data, index)});
+			frames.push_back({bytesToUInt16(data, index), bytesToUInt16(data, index)});
 		}
 
 		// Load frame rects
 		for (int i = 0; i < numFrames; i++) {
-			std::int8_t x = data[index++];
-			std::int8_t y = data[index++];
-			std::int8_t w = data[index++];
-			std::int8_t h = data[index++];
-			frameRects.push_back({x, y, w, h});
+			frameRects.push_back({data[index++], data[index++], data[index++], data[index++]});
 		}
 	}
 
 	// Load animation frames
-	int numAnimFrames = bytesToShort(data, index);
+	int numAnimFrames = bytesToUInt16(data, index);
 	if (numAnimFrames != 0) {
 		int endIndex = index + numAnimFrames * 5; // End index of animation frame data
 		while (index < endIndex) {
-			std::uint8_t ind = data[index++];
-			std::int8_t dispTime = data[index++];
-			std::int8_t xOffs = data[index++];
-			std::int8_t yOffs = data[index++];
-			std::int8_t flags = data[index++];
-			animationFrames.push_back({ind, dispTime, xOffs, yOffs, flags});
+			animationFrames.push_back({data[index++], data[index++], (std::int8_t)data[index++], (std::int8_t)data[index++], data[index++]});
 		}
 	}
 
 	// Load animations
-	int numAnimations = bytesToShort(data, index);
+	int numAnimations = bytesToUInt16(data, index);
 	if (numAnimations != 0) {
 		for (int i = 0; i < numAnimations; i++) {
-			animations.push_back({bytesToShort(data, index), bytesToShort(data, index)});
+			animations.push_back({bytesToUInt16(data, index), bytesToUInt16(data, index)});
 		}
 	}
 
 	if (numModules > 0) {
-		int paletteFormat = bytesToShort(data, index);
+		int paletteFormat = bytesToUInt16(data, index);
 		paletteCount = data[index++] & 0xFF;
 		int paletteSize = data[index++] & 0xFF;
 		// Reserve empty space for palettes
@@ -149,7 +134,7 @@ void GameloftGraphics::loadData(std::vector<unsigned char> data, int index) {
 				break;
 			case ARGB4444:
 				for (int c = 0; c < paletteSize; c++) {
-					int palColor = bytesToShort(data, index);
+					int palColor = bytesToUInt16(data, index);
 					if ((palColor & 0xF000) != 61440) {
 						isTransparent = true;
 					}
@@ -159,7 +144,7 @@ void GameloftGraphics::loadData(std::vector<unsigned char> data, int index) {
 				break;
 			case ARGB1555:
 				for (int c = 0; c < paletteSize; c++) {
-					int palColor = bytesToShort(data, index);
+					int palColor = bytesToUInt16(data, index);
 					int alpha = 0xFF000000;
 					if ((palColor & 0x8000) != 0x8000) {
 						alpha = 0;
@@ -171,7 +156,7 @@ void GameloftGraphics::loadData(std::vector<unsigned char> data, int index) {
 				break;
 			case RGB565:
 				for (int c = 0; c < paletteSize; c++) { 
-					int palColor = bytesToShort(data, index);
+					int palColor = bytesToUInt16(data, index);
 					int alpha = 0xFF000000;
 					if (palColor == 0xF81F) {
 						alpha = 0;
@@ -184,10 +169,10 @@ void GameloftGraphics::loadData(std::vector<unsigned char> data, int index) {
 			}
 		}
 
-		bitDepth = bytesToShort(data, index);
+		bitDepth = bytesToUInt16(data, index);
 		if (numModules > 0) {
 			for (int i = 0; i < numModules; i++) {
-				int bitmapSize = bytesToShort(data, index);
+				int bitmapSize = bytesToUInt16(data, index);
 				std::vector<unsigned char> vec(data.begin()+index, data.begin()+index+bitmapSize);
 				bitmapData.push_back(vec);
 				index += bitmapSize;
