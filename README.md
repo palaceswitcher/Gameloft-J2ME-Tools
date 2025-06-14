@@ -7,6 +7,7 @@ A GUI tool and Python scripts for modifying Gameloft's J2ME asset files.
 The following build instructions should work for both Windows and Linux, provided you have installed the appropriate dependencies. [MSYS2](https://www.msys2.org/) is recommended for Windows.
 
 ### Dependencies
+- libpng
 - SDL3
 - CMake
 
